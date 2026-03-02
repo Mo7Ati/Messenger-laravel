@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ConversationTypeEnum;
+use App\Http\Resources\ConversationResource;
+use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Recipient;
@@ -16,51 +19,45 @@ class ConversationController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $conversations = $user->conversations()
+        $conversations = Conversation::query()
+            ->withWhereHas('participants', function ($builder) use ($user) {
+                return $builder->where('user_id', '<>', $user->id);
+            })
             ->with([
-                'participants' => function ($builder) use ($user) {
+                'lastMessage.recipients' => function ($builder) use ($user) {
                     return $builder->where('user_id', '<>', $user->id);
                 },
-                'lastMessage',
-            ])->withCount([
-                    'recipients as new_messages' => function ($builder) use ($user) {
-                        $builder->where('recipients.user_id', '=', $user->id)
-                            ->whereNull('read_at');
-                    }
-                ])
+            ])
+            ->withCount([
+                'recipients' => function ($builder) {
+                    return $builder->whereNull('read_at');
+                }
+            ])
             ->get();
 
-        $friends = User::where('id', '<>', $user->id)
-            ->orderBy('name')
-            ->get();
-
-        $groups = $user->conversations()->where('type', 'group')->with([
-            'participants' => function ($builder) use ($user) {
-                return $builder->where('user_id', '<>', $user->id);
-            },
-            'lastMessage',
-        ])->get();
-
-
-        return
-            [
-                'chats' => $conversations,
-                'friends' => $friends,
-                'groups' => $groups,
-            ]
-        ;
+        return successResponse(
+            ConversationResource::collection($conversations),
+            'Conversations fetched successfully'
+        );
     }
 
     public function show($id)
     {
         $user = Auth::user();
-        return $user->conversations()->findOrFail($id)
-            ->load([
+
+        $conversation = $user->conversations()
+            ->with([
                 'participants' => function ($builder) use ($user) {
                     return $builder->where('user_id', '<>', $user->id);
                 },
-                'lastMessage',
-            ]);
+                'messages'
+            ])->findOrFail($id);
+
+
+        return successResponse(
+            ConversationResource::make($conversation),
+            'Conversation fetched successfully'
+        );
     }
 
     public function addParticipant(Request $request, Conversation $conversation)
