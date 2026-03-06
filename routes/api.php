@@ -1,19 +1,18 @@
 <?php
 
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ConversationController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\MessagesController;
-
+use App\Http\Controllers\UserController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 
 Route::any('/user', function (Request $request) {
     return successResponse($request->user());
 })->middleware('auth:sanctum');
 
-
-
-Route::middleware('')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations', [ConversationController::class, 'index']);
     Route::get('conversations/{conversation}', [ConversationController::class, 'show']);
     Route::post('conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
@@ -25,8 +24,19 @@ Route::middleware('')->group(function () {
 
     Route::post('messages/{id}/read', [MessagesController::class, 'markAsRead']);
 
-    ROUTE::post('groups', [GroupsController::class, 'store']);
-});
+    Route::post('groups', [GroupsController::class, 'store']);
 
+
+    Route::get('/users/search', [UserController::class, 'search']);
+
+    Route::get('/contacts', [ContactController::class, 'index']);
+    Route::get('/contacts/{contact}', [ContactController::class, 'show']);
+    Route::get('/contacts/requests', [ContactController::class, 'pendingRequests']);
+    Route::get('/contacts/sent', [ContactController::class, 'sentRequests']);
+    Route::post('/contacts/request', [ContactController::class, 'sendRequest']);
+    Route::post('/contacts/accept/{contact}', [ContactController::class, 'acceptRequest']);
+    Route::post('/contacts/reject/{contact}', [ContactController::class, 'rejectRequest']);
+    Route::delete('/contacts/{User}', [ContactController::class, 'removeContact']);
+});
 
 require __DIR__ . '/auth.php';

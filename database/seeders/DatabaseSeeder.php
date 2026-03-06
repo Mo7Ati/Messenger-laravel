@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Contact;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -15,11 +16,37 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $firstUser = User::firstOrCreate(
+            ['email' => 'test@example.com'],
+            [
+                'name' => 'Test User',
+                'password' => bcrypt('password'),
+            ]
+        );
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        $otherUsers = User::factory(8)->create();
+
+        foreach ($otherUsers->take(5) as $contactUser) {
+            Contact::firstOrCreate(
+                [
+                    'user_id' => $firstUser->id,
+                    'contact_id' => $contactUser->id,
+                ],
+                [
+                    'status' => 'accepted',
+                    'action_user_id' => $firstUser->id,
+                ]
+            );
+            Contact::firstOrCreate(
+                [
+                    'user_id' => $contactUser->id,
+                    'contact_id' => $firstUser->id,
+                ],
+                [
+                    'status' => 'accepted',
+                    'action_user_id' => $firstUser->id,
+                ]
+            );
+        }
     }
 }
