@@ -7,7 +7,7 @@ use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\MessagesController;
 
 
-Route::get('/user', function (Request $request) {
+Route::any('/user', function (Request $request) {
     return successResponse($request->user());
 })->middleware('auth:sanctum');
 

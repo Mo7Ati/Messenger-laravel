@@ -16,7 +16,7 @@ class MessageResource extends JsonResource
         return [
             'id' => $this->id,
             'body' => $this->body,
-            'created_at' => $this->created_at->diffForHumans(),
+            'created_at' => $this->created_at->format('H:i'),
             'is_mine' => $this->user_id == Auth::id(),
             'is_read_by_all' => $this->whenLoaded('recipients', function ($recipients) {
                 return $recipients->every(function ($recipient) {

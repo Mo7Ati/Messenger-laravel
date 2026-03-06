@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageCreated;
+use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Recipient;
@@ -118,23 +119,26 @@ class MessagesController extends Controller
             $conversation->update([
                 'last_message_id' => $message->id,
             ]);
+
+
+            broadcast(new MessageCreated($message, $conversation->id))->toOthers();
             DB::commit();
 
-            if ($conversation->type == 'peer') {
-                $other_user = $conversation
-                    ->participants()
-                    ->where('user_id', '<>', $message->user_id)->first();
-                broadcast(new MessageCreated($message, $other_user));
+            // if ($conversation->type == 'peer') {
+            //     $other_user = $conversation
+            //         ->participants()
+            //         ->where('user_id', '<>', $message->user_id)->first();
+            //     broadcast(new MessageCreated($message, $other_user));
 
-            } else {
-                $participants = $conversation
-                    ->participants()
-                    ->where('user_id', '<>', $message->user_id)->get();
+            // } else {
+            //     $participants = $conversation
+            //         ->participants()
+            //         ->where('user_id', '<>', $message->user_id)->get();
 
-                foreach ($participants as $participant) {
-                    broadcast(new MessageCreated($message, $participant));
-                }
-            }
+            //     foreach ($participants as $participant) {
+            //         broadcast(new MessageCreated($message, $participant));
+            //     }
+            // }
 
 
         } catch (Throwable $e) {
@@ -149,10 +153,7 @@ class MessagesController extends Controller
             'lastMessage',
         ]);
 
-        return [
-            "message" => $message->load('user'),
-            "chat" => $conversation
-        ];
+        return successResponse(MessageResource::make($message), 'Message sent successfully');
     }
 
     /**

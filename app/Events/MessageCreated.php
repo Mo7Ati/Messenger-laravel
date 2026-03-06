@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use App\Models\User;
 use Illuminate\Broadcasting\Channel;
@@ -19,14 +20,14 @@ class MessageCreated implements ShouldBroadcast
 
     public $message;
 
-    public $user;
+    public $conversation_id;
     /**
      * Create a new event instance.
      */
-    public function __construct(Message $message, User $user)
+    public function __construct(Message $message, int $conversation_id)
     {
-        $this->message = $message->load('user');
-        $this->user = $user;
+        $this->message = MessageResource::make($message->load('user'));
+        $this->conversation_id = $conversation_id;
     }
 
     /**
@@ -36,10 +37,10 @@ class MessageCreated implements ShouldBroadcast
      */
 
 
-    public function broadcastOn(): array 
+    public function broadcastOn(): array
     {
         return [
-            new PresenceChannel('messenger.' . $this->user->id),
+            new PresenceChannel('messenger.' . $this->conversation_id),
         ];
     }
 }
