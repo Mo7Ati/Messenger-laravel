@@ -39,4 +39,3 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/contacts/{User}', [ContactController::class, 'removeContact']);
 });
 
-require __DIR__ . '/auth.php';
