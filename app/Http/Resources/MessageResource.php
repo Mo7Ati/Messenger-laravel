@@ -23,6 +23,7 @@ class MessageResource extends JsonResource
                     return $recipient->read_at ? true : false;
                 });
             }),
+            'chat_id' => $this->conversation_id,
         ];
     }
 }
