@@ -22,7 +22,7 @@ class SendContactRequestRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'contact_id' => ['required', 'integer', 'exists:users,id'],
+            'receiver_id' => ['required', 'integer', 'exists:users,id'],
         ];
     }
 
@@ -34,8 +34,8 @@ class SendContactRequestRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'contact_id.required' => 'The contact ID is required.',
-            'contact_id.exists' => 'The selected user does not exist.',
+            'receiver_id.required' => 'The receiver ID is required.',
+            'receiver_id.exists' => 'The selected user does not exist.',
         ];
     }
 }

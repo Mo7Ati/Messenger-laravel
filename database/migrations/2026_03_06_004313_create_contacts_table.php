@@ -13,16 +13,15 @@ return new class extends Migration
     {
         Schema::create('contacts', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->foreignId('contact_id')->constrained('users')->cascadeOnDelete();
-            $table->enum('status', ['pending', 'accepted', 'blocked'])->default('pending');
-            $table->foreignId('action_user_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('sender_id')->constrained('users')->cascadeOnDelete();
+            $table->foreignId('receiver_id')->constrained('users')->cascadeOnDelete();
+            $table->enum('status', ['pending', 'accepted', 'blocked', 'cancelled', 'removed'])->default('pending');
+            $table->timestamp('accepted_at')->nullable();
             $table->timestamps();
 
-            $table->unique(['user_id', 'contact_id']);
-            $table->index('user_id');
-            $table->index('contact_id');
-            $table->index('action_user_id');
+            $table->unique(['sender_id', 'receiver_id']);
+            $table->index('sender_id');
+            $table->index('receiver_id');
         });
     }
 

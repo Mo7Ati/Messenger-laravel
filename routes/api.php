@@ -26,16 +26,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('groups', [GroupsController::class, 'store']);
 
-
-    Route::get('/users/search', [UserController::class, 'search']);
+    Route::get('/contacts/search', [UserController::class, 'search']);
 
     Route::get('/contacts', [ContactController::class, 'index']);
-    Route::get('/contacts/{contact}', [ContactController::class, 'show']);
     Route::get('/contacts/requests', [ContactController::class, 'pendingRequests']);
     Route::get('/contacts/sent', [ContactController::class, 'sentRequests']);
-    Route::post('/contacts/request', [ContactController::class, 'sendRequest']);
-    Route::post('/contacts/accept/{contact}', [ContactController::class, 'acceptRequest']);
-    Route::post('/contacts/reject/{contact}', [ContactController::class, 'rejectRequest']);
-    Route::delete('/contacts/{User}', [ContactController::class, 'removeContact']);
-});
 
+    Route::get('/contacts/{contact}', [ContactController::class, 'show']);
+
+    Route::post('/contacts/request', [ContactController::class, 'sendRequest']);
+
+    Route::post('/contacts/accept/{user}', [ContactController::class, 'acceptRequest']);
+    Route::post('/contacts/reject/{user}', [ContactController::class, 'rejectRequest']);
+    Route::delete('/contacts/{user}', [ContactController::class, 'removeContact']);
+});

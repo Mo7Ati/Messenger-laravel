@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Database\Eloquent\Collection;
+use App\Enums\ContactStatusEnum;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -22,11 +20,11 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
+        'username',
         'name',
         'email',
         'password',
         'last_active_at',
-        'username',
         'phone',
         'is_discoverable',
         'bio',
@@ -66,6 +64,9 @@ class User extends Authenticatable
         return $this->hasOne(Conversation::class);
     }
 
+    /*
+     * returns all conversations for the user
+     */
     public function conversations()
     {
         return $this->belongsToMany(Conversation::class, 'participants')
@@ -73,75 +74,96 @@ class User extends Authenticatable
             ->withPivot(['role', 'joined_at']);
     }
 
+    /*
+     * returns all messages sent by the user
+     */
     public function sentMessages()
     {
         return $this->hasMany(Message::class);
     }
 
+    /*
+     * returns all messages received by the user
+     */
     public function receivedMessages()
     {
         return $this->belongsToMany(Message::class, 'recipients')
             ->withPivot(['read_at', 'deleted_at']);
     }
 
-    public function acceptedContactsAsUser(): BelongsToMany
+    public function contactsSent()
     {
-        return $this->belongsToMany(User::class, 'contacts', 'user_id', 'contact_id')
-            ->wherePivot('status', 'accepted');
+        return $this->belongsToMany(
+            User::class,
+            'contacts',
+            'sender_id',
+            'receiver_id'
+        )->withPivot(['status', 'accepted_at']);
     }
 
-    public function acceptedContactsAsContact(): BelongsToMany
+    public function contactsReceived()
     {
-        return $this->belongsToMany(User::class, 'contacts', 'contact_id', 'user_id')
-            ->wherePivot('status', 'accepted');
+        return $this->belongsToMany(
+            User::class,
+            'contacts',
+            'receiver_id',
+            'sender_id'
+        )->withPivot(['status', 'accepted_at']);
     }
 
-    public function sentContactRequests(): HasMany
+    public function contacts(): Builder
     {
-        return $this->hasMany(Contact::class, 'user_id')->where('status', 'pending');
+        $id = $this->id;
+
+        $contactUserIds = Contact::query()
+            ->where('status', ContactStatusEnum::ACCEPTED)
+            ->where(function ($q) use ($id) {
+                $q->where('sender_id', $id)
+                    ->orWhere('receiver_id', $id);
+            })
+            ->selectRaw(
+                'CASE
+                    WHEN sender_id = ? THEN receiver_id
+                    ELSE sender_id
+                 END',
+                [$id]
+            );
+
+        return User::query()->whereIn('id', $contactUserIds);
     }
 
-    public function receivedContactRequests(): HasMany
+    public function isContactWith($userId): bool
     {
-        return $this->hasMany(Contact::class, 'contact_id')->where('status', 'pending');
+        return $this->contacts()->where('users.id', $userId)->exists();
     }
 
-    /**
-     * Get all accepted contacts (users) for this user.
-     *
-     * @return Collection<int, User>
-     */
-    public function contacts(): Collection
+    public function hasSentRequestTo($userId): bool
     {
-        $contactIds = Contact::where('user_id', $this->id)->where('status', 'accepted')->pluck('contact_id');
-        $userIds = Contact::where('contact_id', $this->id)->where('status', 'accepted')->pluck('user_id');
-
-        return User::whereIn('id', $contactIds->merge($userIds))->get();
+        return $this->contactsSent()->where([
+            'contacts.receiver_id' => $userId,
+            'contacts.status' => ContactStatusEnum::PENDING,
+        ])->exists();
     }
 
-    public function isContactWith(int $userId): bool
+    public function hasPendingRequestFrom($userId): bool
     {
-        return Contact::where(function ($query) use ($userId) {
-            $query->where('user_id', $this->id)->where('contact_id', $userId);
-        })->orWhere(function ($query) use ($userId) {
-            $query->where('user_id', $userId)->where('contact_id', $this->id);
-        })->where('status', 'accepted')->exists();
+        return $this->contactsReceived()->where([
+            'contacts.sender_id' => $userId,
+            'contacts.status' => ContactStatusEnum::PENDING,
+        ])->exists();
     }
 
-    public function hasPendingRequestFrom(int $userId): bool
+    public function contactStatus($userId): string
     {
-        return Contact::where('user_id', $userId)
-            ->where('contact_id', $this->id)
-            ->where('status', 'pending')
-            ->exists();
-    }
+        if ($this->isContactWith($userId)) {
+            return 'contacts';
+        } elseif ($this->hasSentRequestTo($userId)) {
+            return 'request_sent';
+        } elseif ($this->hasPendingRequestFrom($userId)) {
+            return 'request_received';
+        }
 
-    public function hasSentRequestTo(int $userId): bool
-    {
-        return Contact::where('user_id', $this->id)
-            ->where('contact_id', $userId)
-            ->where('status', 'pending')
-            ->exists();
+        return 'none';
     }
 
     public function getAvatarUrlAttribute()

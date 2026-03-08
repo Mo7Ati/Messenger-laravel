@@ -2,36 +2,47 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ContactStatusEnum;
 use App\Enums\ConversationTypeEnum;
 use App\Http\Requests\SendContactRequestRequest;
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\UserResource;
 use App\Models\Contact;
-use App\Models\Conversation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
 {
+    public function __construct()
+    {
+        DB::listen(function ($query): void {
+            Log::info('ContactController query', [
+                'sql' => $query->sql,
+                'bindings' => $query->bindings,
+                'time_ms' => $query->time,
+            ]);
+        });
+    }
+
     /**
      * Get all accepted contacts of the authenticated user.
      */
-    public function index(Request $request): JsonResponse
+    public function index(Request $request)
     {
         $user = Auth::user();
-        $contacts = $user->contacts();
 
-        $data = $contacts->map(fn($contact) => [
-            'id' => $contact->id,
-            'name' => $contact->name,
-            'username' => $contact->username,
-            'avatar' => $contact->avatar,
-        ]);
-
-        return successResponse($data->values()->all(), 'Contacts retrieved successfully', 200);
+        return successResponse(
+            UserResource::collection($user->contacts()->get()),
+            'Contacts retrieved successfully',
+            200,
+            [
+                'pending_requests' => $user->contactsReceived()->wherePivot('status', ContactStatusEnum::PENDING)->count(),
+            ],
+        );
     }
 
     /**
@@ -41,12 +52,13 @@ class ContactController extends Controller
     {
         $user = Auth::user();
         $conversation = $user->conversations()
-            ->with('messages')
             ->where('type', ConversationTypeEnum::PEER)
             ->whereHas('participants', function ($query) use ($contact, $user) {
                 $query->where('user_id', $contact->id)
                     ->where('user_id', '<>', $user->id);
-            })->first();
+            })
+            ->with('messages')
+            ->first();
 
         return successResponse(
             [
@@ -61,26 +73,18 @@ class ContactController extends Controller
     /**
      * Get all pending contact requests received by the authenticated user.
      */
-    public function pendingRequests(Request $request): JsonResponse
+    public function pendingRequests(Request $request)
     {
         $user = Auth::user();
-        $requests = $user->receivedContactRequests()->with('user:id,name,username,avatar')->get();
+        $pendingContacts = $user->contactsReceived()
+            ->where('contacts.status', ContactStatusEnum::PENDING)
+            ->get();
 
-        $data = $requests->map(fn(Contact $contact) => [
-            'id' => $contact->id,
-            'user_id' => $contact->user_id,
-            'contact_id' => $contact->contact_id,
-            'status' => $contact->status,
-            'created_at' => $contact->created_at,
-            'user' => $contact->user ? [
-                'id' => $contact->user->id,
-                'name' => $contact->user->name,
-                'username' => $contact->user->username,
-                'avatar' => $contact->user->avatar,
-            ] : null,
-        ]);
-
-        return successResponse($data->values()->all(), 'Pending requests retrieved', 200);
+        return successResponse(
+            UserResource::collection($pendingContacts),
+            'Pending requests retrieved',
+            200,
+        );
     }
 
     /**
@@ -89,23 +93,15 @@ class ContactController extends Controller
     public function sentRequests(Request $request): JsonResponse
     {
         $user = Auth::user();
-        $requests = $user->sentContactRequests()->with('contact:id,name,username,avatar')->get();
+        $sentContacts = $user->contactsSent()
+            ->where('contacts.status', ContactStatusEnum::PENDING)
+            ->get();
 
-        $data = $requests->map(fn(Contact $contact) => [
-            'id' => $contact->id,
-            'user_id' => $contact->user_id,
-            'contact_id' => $contact->contact_id,
-            'status' => $contact->status,
-            'created_at' => $contact->created_at,
-            'contact' => $contact->contact ? [
-                'id' => $contact->contact->id,
-                'name' => $contact->contact->name,
-                'username' => $contact->contact->username,
-                'avatar' => $contact->contact->avatar,
-            ] : null,
-        ]);
-
-        return successResponse($data->values()->all(), 'Sent requests retrieved', 200);
+        return successResponse(
+            UserResource::collection($sentContacts),
+            'Sent requests retrieved',
+            200
+        );
     }
 
     /**
@@ -114,42 +110,36 @@ class ContactController extends Controller
     public function sendRequest(SendContactRequestRequest $request): JsonResponse
     {
         $user = Auth::user();
-        $contactId = (int) $request->validated('contact_id');
+        $receiverId = (int) $request->validated('receiver_id');
 
-        if ($contactId === $user->id) {
+        if ($receiverId === $user->id) {
             return errorResponse('You cannot add yourself as a contact', 400);
         }
 
-        if ($user->isContactWith($contactId)) {
+        if ($user->isContactWith($receiverId)) {
             return errorResponse('Already in contacts', 400);
         }
 
-        if ($user->hasSentRequestTo($contactId)) {
+        if ($user->hasSentRequestTo($receiverId)) {
             return errorResponse('Request already sent', 400);
         }
 
-        if ($user->hasPendingRequestFrom($contactId)) {
-            $incomingRequest = Contact::where('user_id', $contactId)
-                ->where('contact_id', $user->id)
-                ->where('status', 'pending')
-                ->first();
-
-            return $this->acceptRequest($request, $incomingRequest);
+        if ($user->hasPendingRequestFrom($receiverId)) {
+            return $this->acceptRequest($request, $receiverId);
         }
 
-        DB::transaction(function () use ($user, $contactId) {
+        DB::transaction(function () use ($user, $receiverId) {
             Contact::create([
-                'user_id' => $user->id,
-                'contact_id' => $contactId,
+                'sender_id' => $user->id,
+                'receiver_id' => $receiverId,
                 'status' => 'pending',
-                'action_user_id' => $user->id,
             ]);
-            Contact::create([
-                'user_id' => $contactId,
-                'contact_id' => $user->id,
-                'status' => 'pending',
-                'action_user_id' => $user->id,
-            ]);
+            // Contact::create([
+            //     'user_id' => $contactId,
+            //     'contact_id' => $user->id,
+            //     'status' => 'pending',
+            //     'action_user_id' => $user->id,
+            // ]);
         });
 
         return successResponse(null, 'Contact request sent successfully', 201);
@@ -158,67 +148,80 @@ class ContactController extends Controller
     /**
      * Accept a contact request (must be the recipient).
      */
-    public function acceptRequest(Request $request, Contact $contact): JsonResponse
+    public function acceptRequest(Request $request, int $userId): JsonResponse
     {
         $user = Auth::user();
+        $contact = Contact::query()
+            ->where([
+                'sender_id' => $userId,
+                'receiver_id' => $user->id,
+                'status' => ContactStatusEnum::PENDING,
+            ])->firstOrFail();
 
-        if ((int) $contact->contact_id !== (int) $user->id) {
-            return errorResponse('Unauthorized', 403);
-        }
+        $contact->update([
+            'status' => ContactStatusEnum::ACCEPTED,
+            'accepted_at' => now(),
+        ]);
 
-        DB::transaction(function () use ($contact) {
-            Contact::where(function ($q) use ($contact) {
-                $q->where('user_id', $contact->user_id)->where('contact_id', $contact->contact_id);
-            })->orWhere(function ($q) use ($contact) {
-                $q->where('user_id', $contact->contact_id)->where('contact_id', $contact->user_id);
-            })->update(['status' => 'accepted']);
-        });
-
-        return successResponse(null, 'Contact request accepted', 200);
+        return successResponse(
+            $contact,
+            'Contact request accepted',
+            200
+        );
     }
 
     /**
      * Reject a contact request (must be the recipient).
      */
-    public function rejectRequest(Request $request, Contact $contact): JsonResponse
+    public function rejectRequest(Request $request, int $userId): JsonResponse
     {
         $user = Auth::user();
 
-        if ((int) $contact->contact_id !== (int) $user->id) {
-            return errorResponse('Unauthorized', 403);
-        }
+        $contact = Contact::query()
+            ->where([
+                'sender_id' => $userId,
+                'receiver_id' => $user->id,
+                'status' => ContactStatusEnum::PENDING,
+            ])->firstOrFail();
 
-        DB::transaction(function () use ($contact) {
-            Contact::where(function ($q) use ($contact) {
-                $q->where('user_id', $contact->user_id)->where('contact_id', $contact->contact_id);
-            })->orWhere(function ($q) use ($contact) {
-                $q->where('user_id', $contact->contact_id)->where('contact_id', $contact->user_id);
-            })->delete();
-        });
+        $contact->update([
+            'status' => ContactStatusEnum::CANCELLED,
+        ]);
 
-        return successResponse(null, 'Contact request rejected', 200);
+        return successResponse(
+            $contact,
+            'Contact request rejected',
+            200
+        );
     }
 
     /**
      * Remove a contact (must be one of the two users in the contact).
      */
-    public function removeContact(Request $request, Contact $contact): JsonResponse
+    public function removeContact(Request $request, int $userId): JsonResponse
     {
-        $user = Auth::user();
-        $userId = (int) $user->id;
+        $authId = Auth::id();
 
-        if ((int) $contact->user_id !== $userId && (int) $contact->contact_id !== $userId) {
-            return errorResponse('Unauthorized', 403);
-        }
+        $contact = Contact::query()
+            ->where(function ($q) use ($authId, $userId) {
+                $q->where('sender_id', $authId)
+                    ->where('receiver_id', $userId);
+            })
+            ->orWhere(function ($q) use ($authId, $userId) {
+                $q->where('sender_id', $userId)
+                    ->where('receiver_id', $authId);
+            })
+            ->where('status', ContactStatusEnum::ACCEPTED)
+            ->firstOrFail();
 
-        DB::transaction(function () use ($contact) {
-            Contact::where(function ($q) use ($contact) {
-                $q->where('user_id', $contact->user_id)->where('contact_id', $contact->contact_id);
-            })->orWhere(function ($q) use ($contact) {
-                $q->where('user_id', $contact->contact_id)->where('contact_id', $contact->user_id);
-            })->delete();
-        });
+        $contact->update([
+            'status' => ContactStatusEnum::REMOVED,
+        ]);
 
-        return successResponse(null, 'Contact removed', 200);
+        return successResponse(
+            $contact,
+            'Contact removed',
+            200
+        );
     }
 }
