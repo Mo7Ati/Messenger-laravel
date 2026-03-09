@@ -121,7 +121,7 @@ class MessagesController extends Controller
             ]);
 
 
-            broadcast(new MessageCreated($message, $conversation->id))->toOthers();
+            broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
 
             // if ($conversation->type == 'peer') {

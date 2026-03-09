@@ -2,17 +2,16 @@
 
 namespace App\Events;
 
+use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
+use App\Models\Conversation;
 use App\Models\Message;
-use App\Models\User;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\PresenceChannel;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class MessageCreated implements ShouldBroadcast
 {
@@ -20,14 +19,15 @@ class MessageCreated implements ShouldBroadcast
 
     public $message;
 
-    public $conversation_id;
+    // public $chat;
+
     /**
      * Create a new event instance.
      */
-    public function __construct(Message $message, int $conversation_id)
+    public function __construct(Message $message)
     {
         $this->message = MessageResource::make($message->load('user'));
-        $this->conversation_id = $conversation_id;
+        // $this->chat = ConversationResource::make($conversation->load('lastMessage'));
     }
 
     /**
@@ -35,12 +35,14 @@ class MessageCreated implements ShouldBroadcast
      *
      * @return array<int, \Illuminate\Broadcasting\Channel>
      */
-
-
     public function broadcastOn(): array
     {
-        return [
-            new PresenceChannel('messenger.' . $this->conversation_id),
-        ];
+        $participantIds = DB::table('participants')
+            ->where('conversation_id', $this->message->conversation_id)
+            ->pluck('user_id');
+
+        return $participantIds
+            ->map(fn(int $userId) => new PrivateChannel('messenger.user.' . $userId))
+            ->all();
     }
 }

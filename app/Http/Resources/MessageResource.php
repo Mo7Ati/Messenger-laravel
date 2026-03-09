@@ -2,12 +2,9 @@
 
 namespace App\Http\Resources;
 
-
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
-
 
 class MessageResource extends JsonResource
 {
@@ -24,6 +21,10 @@ class MessageResource extends JsonResource
                 });
             }),
             'chat_id' => $this->conversation_id,
+            'user' => $this->whenLoaded('user', fn() => [
+                'id' => $this->user->id,
+                'name' => $this->user->name,
+            ]),
         ];
     }
 }
