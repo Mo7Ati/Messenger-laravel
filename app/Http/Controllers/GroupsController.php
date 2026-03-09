@@ -92,7 +92,7 @@ class GroupsController extends Controller
             ->where('type', ConversationTypeEnum::GROUP)
             ->with([
                 'participants',
-                'messages',
+                'messages.user',
             ])
             ->findOrFail($id);
 

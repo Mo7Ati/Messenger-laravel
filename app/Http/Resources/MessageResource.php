@@ -21,10 +21,7 @@ class MessageResource extends JsonResource
                 });
             }),
             'chat_id' => $this->conversation_id,
-            'user' => $this->whenLoaded('user', fn() => [
-                'id' => $this->user->id,
-                'name' => $this->user->name,
-            ]),
+            'user' => $this->whenLoaded('user', $this->user),
         ];
     }
 }
