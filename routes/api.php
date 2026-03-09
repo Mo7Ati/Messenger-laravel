@@ -15,16 +15,21 @@ Route::any('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('conversations', [ConversationController::class, 'index']);
     Route::get('conversations/{conversation}', [ConversationController::class, 'show']);
-    Route::post('conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
-    Route::delete('conversations/{conversation}/participants', [ConversationController::class, 'removeParticipant']);
+    // Route::post('conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
+    // Route::delete('conversations/{conversation}/participants', [ConversationController::class, 'removeParticipant']);
 
-    Route::get('conversations/{id}/messages', [MessagesController::class, 'index']);
+    // Route::get('conversations/{id}/messages', [MessagesController::class, 'index']);
     Route::post('messages', [MessagesController::class, 'store']);
-    Route::delete('messages/{id}', [MessagesController::class, 'destroy']);
+    // Route::delete('messages/{id}', [MessagesController::class, 'destroy']);
 
-    Route::post('messages/{id}/read', [MessagesController::class, 'markAsRead']);
+    // Route::post('messages/{id}/read', [MessagesController::class, 'markAsRead']);
 
+
+    Route::get('groups', [GroupsController::class, 'index']);
     Route::post('groups', [GroupsController::class, 'store']);
+
+
+
 
     Route::get('/contacts/search', [UserController::class, 'search']);
 

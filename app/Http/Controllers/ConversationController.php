@@ -2,36 +2,36 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ConversationTypeEnum;
 use App\Http\Resources\ConversationResource;
-use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
-use App\Models\Message;
-use App\Models\Recipient;
-use App\Models\User;
 use Auth;
-use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class ConversationController extends Controller
 {
+    public function __construct()
+    {
+        DB::listen(function ($query): void {
+            Log::info('ConversationController query', [
+                'sql' => $query->sql,
+                'bindings' => $query->bindings,
+                'time_ms' => $query->time,
+            ]);
+        });
+    }
+
     public function index()
     {
         $user = Auth::user();
-        $conversations = Conversation::query()
-            ->withWhereHas('participants', function ($builder) use ($user) {
-                return $builder->where('user_id', '<>', $user->id);
-            })
+        $conversations = $user->conversations()
             ->with([
-                'lastMessage.recipients' => function ($builder) use ($user) {
-                    return $builder->where('user_id', '<>', $user->id);
-                },
+                'participants',
+                'lastMessage.recipients' => fn($builder) => $builder->where('user_id', '<>', $user->id),
             ])
             ->withCount([
-                'recipients' => function ($builder) {
-                    return $builder->whereNull('read_at');
-                }
+                'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
             ])
             ->get();
 
@@ -47,12 +47,9 @@ class ConversationController extends Controller
 
         $conversation = $user->conversations()
             ->with([
-                'participants' => function ($builder) use ($user) {
-                    return $builder->where('user_id', '<>', $user->id);
-                },
-                'messages'
+                'participants',
+                'messages',
             ])->findOrFail($id);
-
 
         return successResponse(
             ConversationResource::make($conversation),
@@ -77,8 +74,8 @@ class ConversationController extends Controller
 
         $conversation->participants()->detach($request->post('user_id'));
     }
+
     public function destroy($id)
     {
-
     }
 }

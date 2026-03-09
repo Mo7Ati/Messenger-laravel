@@ -25,6 +25,7 @@ class Conversation extends Model
     public function participants()
     {
         return $this->belongsToMany(User::class, 'participants', 'conversation_id', 'user_id')
+            ->where('participants.user_id', '<>', Auth::id())
             ->withPivot(['role', 'joined_at']);
     }
 

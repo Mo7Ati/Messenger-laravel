@@ -20,7 +20,9 @@ class ConversationResource extends JsonResource
             'type' => $this->type->value,
             'label' => $this->getLabel(),
             'participants' => ParticipantResource::collection($this->whenLoaded('participants')),
-            'last_message' => MessageResource::make($this->whenLoaded('lastMessage')),
+            'last_message' => $this->whenLoaded('lastMessage', fn() => $this->last_message_id
+                ? MessageResource::make($this->lastMessage)
+                : null),
             'new_messages' => $this->whenCounted('recipients', $this->recipients_count),
             'messages' => MessageResource::collection($this->whenLoaded('messages')),
             'created_at' => $this->created_at->diffForHumans(),

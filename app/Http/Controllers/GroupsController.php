@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ConversationTypeEnum;
+use App\Http\Resources\ConversationResource;
 use App\Models\Conversation;
 use Exception;
 use Illuminate\Http\Request;
@@ -15,16 +17,22 @@ class GroupsController extends Controller
      */
     public function index()
     {
+        $user = Auth::user();
+        $groups = $user->conversations()
+            ->where('type', ConversationTypeEnum::GROUP)
+            ->with([
+                'participants',
+                'lastMessage.recipients'
+            ])
+            ->withCount([
+                'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
+            ])->get();
 
+        return successResponse(
+            ConversationResource::collection($groups),
+            'Groups fetched successfully'
+        );
 
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
     }
 
     /**
@@ -33,39 +41,43 @@ class GroupsController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'users' => ['required', 'array'],
+            'participants_ids' => ['required', 'array'],
+            'avatar' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
             'label' => ['required', 'string'],
         ]);
         $user = Auth::user();
-        $users = $request->post('users');
-        array_push($users, $user->id);
+        $participants_ids = $request->post('participants_ids', []);
 
         DB::beginTransaction();
         try {
             $conversation = Conversation::create([
                 'user_id' => $user->id,
                 'label' => $request->post('label'),
-                'type' => 'group'
+                'type' => ConversationTypeEnum::GROUP
             ]);
 
-            $conversation->participants()->attach($users);
+            $conversation->participants()->attach([...$participants_ids, $user->id]);
 
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
         }
+        // [
+        //     'group' =>
+        //         $conversation->load([
+        //             'participants' => function ($query) use ($user) {
+        //                 return $query->where('user_id', '<>', $user->id);
+        //             },
+        //             'lastMessage'
+        //         ]),
+        // ];
 
-
-        return [
-            'group' =>
-                $conversation->load([
-                    'participants' => function ($query) use ($user) {
-                        return $query->where('user_id', '<>', $user->id);
-                    },
-                    'lastMessage'
-                ]),
-        ];
+        return successResponse(
+            ConversationResource::make($conversation),
+            'Group created successfully',
+            201
+        );
 
 
     }
@@ -75,7 +87,19 @@ class GroupsController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $user = Auth::user();
+        $group = $user->conversations()
+            ->where('type', ConversationTypeEnum::GROUP)
+            ->with([
+                'participants',
+                'messages',
+            ])
+            ->findOrFail($id);
+
+        return successResponse(
+            ConversationResource::make($group),
+            'Group fetched successfully'
+        );
     }
 
     /**
