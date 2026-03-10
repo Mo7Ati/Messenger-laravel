@@ -20,16 +20,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route::get('conversations/{id}/messages', [MessagesController::class, 'index']);
     Route::post('messages', [MessagesController::class, 'store']);
+    Route::get('messages/attachments/{attachment}', [MessagesController::class, 'downloadAttachment'])
+        ->name('messages.attachments.download');
     // Route::delete('messages/{id}', [MessagesController::class, 'destroy']);
 
     // Route::post('messages/{id}/read', [MessagesController::class, 'markAsRead']);
 
-
     Route::get('groups', [GroupsController::class, 'index']);
     Route::post('groups', [GroupsController::class, 'store']);
-
-
-
 
     Route::get('/contacts/search', [UserController::class, 'search']);
 

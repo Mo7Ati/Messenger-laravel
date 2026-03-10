@@ -4,7 +4,6 @@ namespace App\Events;
 
 use App\Http\Resources\ConversationResource;
 use App\Http\Resources\MessageResource;
-use App\Models\Conversation;
 use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
@@ -26,7 +25,7 @@ class MessageCreated implements ShouldBroadcast
      */
     public function __construct(Message $message)
     {
-        $this->message = MessageResource::make($message->load('user'));
+        $this->message = MessageResource::make($message->load(['user', 'attachments']));
         // $this->chat = ConversationResource::make($conversation->load('lastMessage'));
     }
 
@@ -42,7 +41,7 @@ class MessageCreated implements ShouldBroadcast
             ->pluck('user_id');
 
         return $participantIds
-            ->map(fn(int $userId) => new PrivateChannel('messenger.user.' . $userId))
+            ->map(fn (int $userId) => new PrivateChannel('messenger.user.'.$userId))
             ->all();
     }
 }

@@ -4,16 +4,18 @@ namespace App\Http\Controllers;
 
 use App\Events\MessageCreated;
 use App\Http\Resources\MessageResource;
+use App\Models\Attachment;
 use App\Models\Conversation;
 use App\Models\Message;
 use App\Models\Recipient;
 use App\Models\User;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\File;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MessagesController extends Controller
@@ -29,7 +31,7 @@ class MessagesController extends Controller
         $conversation = $user->conversations()->find($id);
 
         $messages = $conversation->messages()
-            ->with('user')
+            ->with(['user', 'attachments'])
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
                     ->orWhereRaw('id in (
@@ -47,7 +49,7 @@ class MessagesController extends Controller
 
         //  ', [$conversation->id]);
 
-        //$conversation->messages()->with('user:id,name')->get();
+        // $conversation->messages()->with('user:id,name')->get();
         $participants = $conversation->participants()->where('user_id', '<>', $user->id)->get();
 
         return response()->json([
@@ -64,10 +66,24 @@ class MessagesController extends Controller
         $user = Auth::user();
 
         $request->validate([
-            'message' => ['required', 'string'],
+            'message' => ['nullable', 'string', 'max:65535'],
             'conversation_id' => ['required_without:user_id', 'integer', 'exists:conversations,id'],
             'user_id' => ['required_without:conversation_id', 'integer', 'exists:users,id'],
+            'attachments' => ['nullable', 'array'],
+            'attachments.*' => [
+                'required',
+                File::types(['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'mp3', 'mp4', 'wav'])
+                    ->max(25 * 1024),
+            ],
         ]);
+
+        $hasAttachments = $request->hasFile('attachments') && count($request->file('attachments')) > 0;
+        $body = trim((string) $request->post('message', ''));
+        if (!$hasAttachments && $body === '') {
+            throw ValidationException::withMessages([
+                'message' => ['Either a message or at least one attachment is required.'],
+            ]);
+        }
 
         $conversation_id = $request->post('conversation_id');
         $user_id = $request->post('user_id');
@@ -96,10 +112,24 @@ class MessagesController extends Controller
                 }
             }
 
+            $messageType = $hasAttachments ? 'attachment' : 'text';
             $message = $conversation->messages()->create([
                 'user_id' => $user->id,
-                'body' => $request->post('message'),
+                'body' => $body,
+                'type' => $messageType,
             ]);
+
+            if ($hasAttachments) {
+                foreach ($request->file('attachments') as $file) {
+                    $path = $file->store('messages/' . $message->id, 'attachments');
+                    $message->attachments()->create([
+                        'path' => $path,
+                        'original_name' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize(),
+                    ]);
+                }
+            }
 
             DB::statement('
                 INSERT INTO recipients (user_id, message_id)
@@ -107,7 +137,6 @@ class MessagesController extends Controller
                 WHERE conversation_id = ?
                 and participants.user_id <> ?
             ', [$message->id, $conversation->id, $user->id]);
-
 
             // $participants = $conversation->participants()->where('user_id', '<>', $user->id)->get();
             // foreach ($participants as $participant) {
@@ -119,7 +148,6 @@ class MessagesController extends Controller
             $conversation->update([
                 'last_message_id' => $message->id,
             ]);
-
 
             broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
@@ -140,11 +168,12 @@ class MessagesController extends Controller
             //     }
             // }
 
-
         } catch (Throwable $e) {
             DB::rollBack();
             throw $e;
         }
+
+        $message->load('attachments');
 
         $conversation->load([
             'participants' => function ($builder) use ($user) {
@@ -154,6 +183,30 @@ class MessagesController extends Controller
         ]);
 
         return successResponse(MessageResource::make($message), 'Message sent successfully');
+    }
+
+    public function downloadAttachment(Attachment $attachment)
+    {
+        $user = Auth::user();
+        $message = $attachment->message;
+        $conversation = $message->conversation;
+
+        if (!$user->conversations()->where('conversations.id', $conversation->id)->exists()) {
+            abort(403, 'You do not have access to this attachment.');
+        }
+
+        $path = $attachment->path;
+        if (!Storage::disk('attachments')->exists($path)) {
+            abort(404, 'File not found.');
+        }
+
+        return Storage::disk('attachments')->download(
+            $path,
+            $attachment->original_name,
+            [
+                'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
+            ]
+        );
     }
 
     /**
@@ -171,7 +224,7 @@ class MessagesController extends Controller
     {
         $message = Message::findOrFail($id);
         $message->update([
-            'body' => $request->post('message')
+            'body' => $request->post('message'),
         ]);
     }
 
@@ -208,8 +261,9 @@ class MessagesController extends Controller
             DB::rollBack();
             throw $e;
         }
+
         return [
-            'message' => 'All Messages Read'
+            'message' => 'All Messages Read',
         ];
     }
 }

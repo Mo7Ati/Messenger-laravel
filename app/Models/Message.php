@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 class Message extends Model
 {
     use SoftDeletes;
+
     protected $fillable = [
         'user_id',
         'conversation_id',
@@ -34,4 +35,8 @@ class Message extends Model
             ->withPivot(['read_at', 'deleted_at']);
     }
 
+    public function attachments(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(Attachment::class, 'message_id', 'id');
+    }
 }

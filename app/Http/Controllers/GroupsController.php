@@ -93,6 +93,7 @@ class GroupsController extends Controller
             ->with([
                 'participants',
                 'messages.user',
+                'messages.attachments',
             ])
             ->findOrFail($id);
 

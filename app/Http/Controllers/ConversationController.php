@@ -48,7 +48,7 @@ class ConversationController extends Controller
         $conversation = $user->conversations()
             ->with([
                 'participants',
-                'messages',
+                'messages.attachments',
             ])->findOrFail($id);
 
         return successResponse(

@@ -57,7 +57,7 @@ class ContactController extends Controller
                 $query->where('user_id', $contact->id)
                     ->where('user_id', '<>', $user->id);
             })
-            ->with('messages')
+            ->with('messages.attachments')
             ->first();
 
         return successResponse(
