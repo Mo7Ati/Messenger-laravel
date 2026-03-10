@@ -115,7 +115,7 @@ class MessagesController extends Controller
 
             if ($hasAttachments) {
                 foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('attachments', ['disk' => 's3']);
+                    $path = $file->store('attachments', ['disk' => 'private']);
                     $message->attachments()->create([
                         'path' => $path,
                         'original_name' => $file->getClientOriginalName(),
@@ -190,11 +190,11 @@ class MessagesController extends Controller
         }
 
         $path = $attachment->path;
-        if (!Storage::disk('s3')->exists($path)) {
+        if (!Storage::disk('private')->exists($path)) {
             abort(404, 'File not found.');
         }
 
-        return Storage::disk('s3')->download(
+        return Storage::disk('private')->download(
             $path,
             $attachment->original_name,
             [
