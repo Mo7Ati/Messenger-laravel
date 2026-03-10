@@ -2,33 +2,22 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\ConversationResource;
-use App\Models\Conversation;
+use App\Http\Resources\ChatResource;
+use App\Models\Chat;
 use Auth;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class ConversationController extends Controller
+class ChatController extends Controller
 {
-    public function __construct()
-    {
-        DB::listen(function ($query): void {
-            Log::info('ConversationController query', [
-                'sql' => $query->sql,
-                'bindings' => $query->bindings,
-                'time_ms' => $query->time,
-            ]);
-        });
-    }
-
     public function index()
     {
         $user = Auth::user();
-        $conversations = $user->conversations()
+        $chats = $user->chats()
             ->with([
                 'participants',
-                'lastMessage.recipients' => fn($builder) => $builder->where('user_id', '<>', $user->id),
+                'lastMessage.recipients',
             ])
             ->withCount([
                 'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
@@ -36,8 +25,8 @@ class ConversationController extends Controller
             ->get();
 
         return successResponse(
-            ConversationResource::collection($conversations),
-            'Conversations fetched successfully'
+            ChatResource::collection($chats),
+            'Chats fetched successfully'
         );
     }
 
@@ -45,34 +34,34 @@ class ConversationController extends Controller
     {
         $user = Auth::user();
 
-        $conversation = $user->conversations()
+        $chat = $user->chats()
             ->with([
                 'participants',
                 'messages.attachments',
             ])->findOrFail($id);
 
         return successResponse(
-            ConversationResource::make($conversation),
-            'Conversation fetched successfully'
+            ChatResource::make($chat),
+            'Chat fetched successfully'
         );
     }
 
-    public function addParticipant(Request $request, Conversation $conversation)
+    public function addParticipant(Request $request, Chat $chat)
     {
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
         ]);
 
-        $conversation->participants()->attach($request->post('user_id'));
+        $chat->participants()->attach($request->post('user_id'));
     }
 
-    public function removeParticipant(Request $request, Conversation $conversation)
+    public function removeParticipant(Request $request, Chat $chat)
     {
         $request->validate([
             'user_id' => 'required|integer|exists:users,id',
         ]);
 
-        $conversation->participants()->detach($request->post('user_id'));
+        $chat->participants()->detach($request->post('user_id'));
     }
 
     public function destroy($id)

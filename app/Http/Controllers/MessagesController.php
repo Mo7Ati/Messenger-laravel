@@ -5,10 +5,9 @@ namespace App\Http\Controllers;
 use App\Events\MessageCreated;
 use App\Http\Resources\MessageResource;
 use App\Models\Attachment;
-use App\Models\Conversation;
+use App\Models\Chat;
 use App\Models\Message;
 use App\Models\Recipient;
-use App\Models\User;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -28,9 +27,9 @@ class MessagesController extends Controller
         $user = Auth::user();
         $messages = [];
 
-        $conversation = $user->conversations()->find($id);
+        $chat = $user->chats()->find($id);
 
-        $messages = $conversation->messages()
+        $messages = $chat->messages()
             ->with(['user', 'attachments'])
             ->where(function ($query) use ($user) {
                 $query->where('user_id', $user->id)
@@ -45,12 +44,12 @@ class MessagesController extends Controller
         // $messages = DB::select('
         //       SELECT * FROM messages
         //       inner join recipients on recipients.message_id = messages.id
-        //       where messages.conversation_id = ?
+        //       where messages.chat_id = ?
 
-        //  ', [$conversation->id]);
+        //  ', [$chat->id]);
 
-        // $conversation->messages()->with('user:id,name')->get();
-        $participants = $conversation->participants()->where('user_id', '<>', $user->id)->get();
+        // $chat->messages()->with('user:id,name')->get();
+        $participants = $chat->participants()->where('user_id', '<>', $user->id)->get();
 
         return response()->json([
             'messages' => $messages,
@@ -67,8 +66,8 @@ class MessagesController extends Controller
 
         $request->validate([
             'message' => ['nullable', 'string', 'max:65535'],
-            'conversation_id' => ['required_without:user_id', 'integer', 'exists:conversations,id'],
-            'user_id' => ['required_without:conversation_id', 'integer', 'exists:users,id'],
+            'chat_id' => ['required_without:user_id', 'integer', 'exists:chats,id'],
+            'user_id' => ['required_without:chat_id', 'integer', 'exists:users,id'],
             'attachments' => ['nullable', 'array'],
             'attachments.*' => [
                 'required',
@@ -79,35 +78,35 @@ class MessagesController extends Controller
 
         $hasAttachments = $request->hasFile('attachments') && count($request->file('attachments')) > 0;
         $body = trim((string) $request->post('message', ''));
-        $conversation_id = $request->post('conversation_id');
+        $chat_id = $request->post('chat_id');
         $user_id = $request->post('user_id');
 
         DB::beginTransaction();
         try {
-            if ($conversation_id) {
-                $conversation = $user->conversations()->findOrFail($conversation_id);
+            if ($chat_id) {
+                $chat = $user->chats()->findOrFail($chat_id);
             } else {
-                $conversation = Conversation::where('type', 'peer')
+                $chat = Chat::where('type', 'peer')
                     ->whereHas(
                         'participants',
                         function (Builder $builder) use ($user, $user_id) {
-                            $builder->join('participants as participants2', 'participants2.conversation_id', '=', 'participants.conversation_id')
+                            $builder->join('participants as participants2', 'participants2.chat_id', '=', 'participants.chat_id')
                                 ->where('participants.user_id', $user->id)
                                 ->where('participants2.user_id', $user_id);
                         }
                     )->first();
 
-                if (!$conversation) {
-                    $conversation = Conversation::create([
+                if (!$chat) {
+                    $chat = Chat::create([
                         'user_id' => $user->id,
                         'type' => 'peer',
                     ]);
-                    $conversation->participants()->attach([$user_id, $user->id]);
+                    $chat->participants()->attach([$user_id, $user->id]);
                 }
             }
 
             $messageType = $hasAttachments ? 'attachment' : 'text';
-            $message = $conversation->messages()->create([
+            $message = $chat->messages()->create([
                 'user_id' => $user->id,
                 'body' => $body,
                 'type' => $messageType,
@@ -128,32 +127,32 @@ class MessagesController extends Controller
             DB::statement('
                 INSERT INTO recipients (user_id, message_id)
                 SELECT user_id, ? FROM participants
-                WHERE conversation_id = ?
+                WHERE chat_id = ?
                 and participants.user_id <> ?
-            ', [$message->id, $conversation->id, $user->id]);
+            ', [$message->id, $chat->id, $user->id]);
 
-            // $participants = $conversation->participants()->where('user_id', '<>', $user->id)->get();
+            // $participants = $chat->participants()->where('user_id', '<>', $user->id)->get();
             // foreach ($participants as $participant) {
             //     $message->recipients()->attach([
             //         'user_id' => $participant->id,
             //     ]);
             // }
 
-            $conversation->update([
+            $chat->update([
                 'last_message_id' => $message->id,
             ]);
 
             broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
 
-            // if ($conversation->type == 'peer') {
-            //     $other_user = $conversation
+            // if ($chat->type == 'peer') {
+            //     $other_user = $chat
             //         ->participants()
             //         ->where('user_id', '<>', $message->user_id)->first();
             //     broadcast(new MessageCreated($message, $other_user));
 
             // } else {
-            //     $participants = $conversation
+            //     $participants = $chat
             //         ->participants()
             //         ->where('user_id', '<>', $message->user_id)->get();
 
@@ -169,7 +168,7 @@ class MessagesController extends Controller
 
         $message->load('attachments');
 
-        // $conversation->load([
+        // $chat->load([
         //     'participants' => function ($builder) use ($user) {
         //         return $builder->where('user_id', '<>', $user->id);
         //     },
@@ -183,9 +182,9 @@ class MessagesController extends Controller
     {
         $user = Auth::user();
         $message = $attachment->message;
-        $conversation = $message->conversation;
+        $chat = $message->chat;
 
-        if (!$user->conversations()->where('conversations.id', $conversation->id)->exists()) {
+        if (!$user->chats()->where('chats.id', $chat->id)->exists()) {
             abort(403, 'You do not have access to this attachment.');
         }
 
@@ -247,7 +246,7 @@ class MessagesController extends Controller
                 inner join messages on messages.id = recipients.message_id
                 SET recipients.read_at = ?
                 where recipients.user_id = ?
-                      and messages.conversation_id = ?
+                      and messages.chat_id = ?
                       and recipients.read_at is null
             ', [now(), $user->id, $id]);
             DB::commit();

@@ -2,7 +2,7 @@
 
 namespace App\Events;
 
-use App\Http\Resources\ConversationResource;
+use App\Http\Resources\ChatResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -26,7 +26,7 @@ class MessageCreated implements ShouldBroadcast
     public function __construct(Message $message)
     {
         $this->message = MessageResource::make($message->load(['user', 'attachments']));
-        // $this->chat = ConversationResource::make($conversation->load('lastMessage'));
+        // $this->chat = ChatResource::make($chat->load('lastMessage'));
     }
 
     /**
@@ -37,7 +37,7 @@ class MessageCreated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         $participantIds = DB::table('participants')
-            ->where('conversation_id', $this->message->conversation_id)
+            ->where('chat_id', $this->message->chat_id)
             ->pluck('user_id');
 
         return $participantIds

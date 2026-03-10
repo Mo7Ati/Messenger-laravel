@@ -17,7 +17,7 @@ class Participant extends Pivot
     protected static function booted(): void
     {
         static::created(function (Participant $participant) {
-             $participant->joined_at = Carbon::now();
+            $participant->joined_at = Carbon::now();
         });
     }
 
@@ -26,9 +26,9 @@ class Participant extends Pivot
         return $this->belongsTo(User::class, 'user_id');
     }
 
-    public function conversation()
+    public function chat()
     {
-        return $this->belongsTo(Conversation::class, 'conversation_id');
+        return $this->belongsTo(Chat::class, 'chat_id');
     }
 
 }

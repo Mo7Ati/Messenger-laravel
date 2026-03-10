@@ -2,11 +2,11 @@
 
 namespace App\Http\Resources;
 
-use App\Enums\ConversationTypeEnum;
+use App\Enums\ChatTypeEnum;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
-class ConversationResource extends JsonResource
+class ChatResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -32,8 +32,8 @@ class ConversationResource extends JsonResource
     public function getLabel(): string
     {
         return match ($this->type) {
-            ConversationTypeEnum::PEER => $this->participants->first()->name,
-            ConversationTypeEnum::GROUP => $this->label,
+            ChatTypeEnum::PEER => $this->participants->first()->name,
+            ChatTypeEnum::GROUP => $this->label,
             default => 'No label',
         };
     }

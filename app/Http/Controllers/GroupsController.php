@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ConversationTypeEnum;
-use App\Http\Resources\ConversationResource;
-use App\Models\Conversation;
+use App\Enums\ChatTypeEnum;
+use App\Http\Resources\ChatResource;
+use App\Models\Chat;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;

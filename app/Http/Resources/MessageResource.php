@@ -12,7 +12,7 @@ class MessageResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'chat_id' => $this->conversation_id,
+            'chat_id' => $this->chat_id,
             'body' => $this->body,
             'type' => $this->type,
             'is_mine' => $this->user_id == Auth::id(),

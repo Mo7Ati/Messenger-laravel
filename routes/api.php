@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\ConversationController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\MessagesController;
 use App\Http\Controllers\UserController;
@@ -13,12 +13,12 @@ Route::any('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('conversations', [ConversationController::class, 'index']);
-    Route::get('conversations/{conversation}', [ConversationController::class, 'show']);
-    // Route::post('conversations/{conversation}/participants', [ConversationController::class, 'addParticipant']);
-    // Route::delete('conversations/{conversation}/participants', [ConversationController::class, 'removeParticipant']);
+    Route::get('chats', [ChatController::class, 'index']);
+    Route::get('chats/{chat}', [ChatController::class, 'show']);
+    // Route::post('chats/{chat}/participants', [ChatController::class, 'addParticipant']);
+    // Route::delete('chats/{chat}/participants', [ChatController::class, 'removeParticipant']);
 
-    // Route::get('conversations/{id}/messages', [MessagesController::class, 'index']);
+    // Route::get('chats/{id}/messages', [MessagesController::class, 'index']);
     Route::post('messages', [MessagesController::class, 'store']);
     Route::get('messages/attachments/{attachment}', [MessagesController::class, 'downloadAttachment'])
         ->name('messages.attachments.download');

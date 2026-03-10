@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
-use App\Enums\ConversationTypeEnum;
+use App\Enums\ChatTypeEnum;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Auth;
 
-class Conversation extends Model
+class Chat extends Model
 {
     protected $fillable = [
         'user_id',
@@ -16,7 +16,7 @@ class Conversation extends Model
     ];
 
     protected $casts = [
-        'type' => ConversationTypeEnum::class,
+        'type' => ChatTypeEnum::class,
     ];
 
     /*
@@ -24,7 +24,7 @@ class Conversation extends Model
     */
     public function participants()
     {
-        return $this->belongsToMany(User::class, 'participants', 'conversation_id', 'user_id')
+        return $this->belongsToMany(User::class, 'participants', 'chat_id', 'user_id')
             ->where('participants.user_id', '<>', Auth::id())
             ->withPivot(['role', 'joined_at']);
     }
@@ -35,7 +35,7 @@ class Conversation extends Model
     }
 
     /*
-    | the creator of the conversation
+    | the creator of the chat
     */
     public function user()
     {
@@ -43,7 +43,7 @@ class Conversation extends Model
     }
 
     /*
-    | the last message of the conversation
+    | the last message of the chat
     */
     public function lastMessage()
     {
@@ -52,14 +52,14 @@ class Conversation extends Model
     }
 
     /*
-    | the recipients of the conversation
+    | the recipients of the chat
     */
     public function recipients()
     {
         return $this->hasManyThrough(
             Recipient::class,
             Message::class,
-            'conversation_id',
+            'chat_id',
             'message_id',
             'id',
             'id'

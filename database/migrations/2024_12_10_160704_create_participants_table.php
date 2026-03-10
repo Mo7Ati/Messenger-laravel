@@ -15,14 +15,14 @@ return new class extends Migration {
                 ->constrained('users')
                 ->cascadeOnDelete();
 
-            $table->foreignId('conversation_id')
-                ->constrained('conversations')
+            $table->foreignId('chat_id')
+                ->constrained('chats')
                 ->cascadeOnDelete();
 
             $table->enum('role', ['admin', 'member'])->default('member');
 
             $table->timestamp('joined_at')->nullable();
-            $table->primary(['user_id', 'conversation_id']);
+            $table->primary(['user_id', 'chat_id']);
         });
     }
 

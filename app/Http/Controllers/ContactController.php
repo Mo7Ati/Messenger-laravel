@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ContactStatusEnum;
-use App\Enums\ConversationTypeEnum;
+use App\Enums\ChatTypeEnum;
 use App\Http\Requests\SendContactRequestRequest;
-use App\Http\Resources\ConversationResource;
+use App\Http\Resources\ChatResource;
 use App\Http\Resources\UserResource;
 use App\Models\Contact;
 use App\Models\User;
@@ -51,8 +51,8 @@ class ContactController extends Controller
     public function show(Request $request, User $contact)
     {
         $user = Auth::user();
-        $conversation = $user->conversations()
-            ->where('type', ConversationTypeEnum::PEER)
+        $chat = $user->chats()
+            ->where('type', ChatTypeEnum::PEER)
             ->whereHas('participants', function ($query) use ($contact, $user) {
                 $query->where('user_id', $contact->id)
                     ->where('user_id', '<>', $user->id);
@@ -62,7 +62,7 @@ class ContactController extends Controller
 
         return successResponse(
             [
-                'chat' => $conversation ? ConversationResource::make($conversation) : null,
+                'chat' => $chat ? ChatResource::make($chat) : null,
                 'contact' => UserResource::make($contact),
             ],
             'Contact retrieved successfully',

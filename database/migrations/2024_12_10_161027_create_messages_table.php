@@ -13,8 +13,8 @@ return new class extends Migration {
         Schema::create('messages', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('conversation_id')
-                    ->constrained('conversations')
+            $table->foreignId('chat_id')
+                    ->constrained('chats')
                     ->cascadeOnDelete();
 
             $table->foreignId('user_id')
@@ -22,13 +22,13 @@ return new class extends Migration {
                 ->constrained('users')
                 ->nullOnDelete();
 
-            $table->text('body'); 
+            $table->text('body');
             $table->enum('type', ['text' , 'attachment'])
-                ->default('text'); 
-            
+                ->default('text');
+
             $table->timestamps() ;
             $table->softDeletes() ;
-            
+
 
         });
     }

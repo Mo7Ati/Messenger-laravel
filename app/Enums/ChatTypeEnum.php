@@ -2,7 +2,7 @@
 
 namespace App\Enums;
 
-enum ConversationTypeEnum: string
+enum ChatTypeEnum: string
 {
     case PEER = 'peer';
     case GROUP = 'group';

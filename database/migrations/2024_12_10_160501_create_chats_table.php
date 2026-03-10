@@ -10,7 +10,7 @@ return new class extends Migration {
      */
     public function up(): void
     {
-        Schema::create('conversations', function (Blueprint $table) {
+        Schema::create('chats', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')
                 ->nullable()
@@ -27,6 +27,6 @@ return new class extends Migration {
      */
     public function down(): void
     {
-        Schema::dropIfExists('conversations');
+        Schema::dropIfExists('chats');
     }
 };

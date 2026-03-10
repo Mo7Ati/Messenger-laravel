@@ -11,7 +11,7 @@ class Message extends Model
 
     protected $fillable = [
         'user_id',
-        'conversation_id',
+        'chat_id',
         'body',
         'type',
     ];
@@ -20,13 +20,13 @@ class Message extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'id')
             ->withDefault([
-                'name' => 'User',
+                'username' => 'User',
             ]);
     }
 
-    public function conversation()
+    public function chat()
     {
-        return $this->belongsTo(Conversation::class, 'conversation_id', 'id');
+        return $this->belongsTo(Chat::class, 'chat_id', 'id');
     }
 
     public function recipients()
