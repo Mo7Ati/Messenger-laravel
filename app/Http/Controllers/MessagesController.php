@@ -73,18 +73,12 @@ class MessagesController extends Controller
             'attachments.*' => [
                 'required',
                 File::types(['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'xls', 'xlsx', 'txt', 'zip', 'mp3', 'mp4', 'wav'])
-                    ->max(25 * 1024),
+                    ->max(5 * 1024),
             ],
         ]);
 
         $hasAttachments = $request->hasFile('attachments') && count($request->file('attachments')) > 0;
         $body = trim((string) $request->post('message', ''));
-        if (!$hasAttachments && $body === '') {
-            throw ValidationException::withMessages([
-                'message' => ['Either a message or at least one attachment is required.'],
-            ]);
-        }
-
         $conversation_id = $request->post('conversation_id');
         $user_id = $request->post('user_id');
 
@@ -121,7 +115,7 @@ class MessagesController extends Controller
 
             if ($hasAttachments) {
                 foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('messages/' . $message->id, 'attachments');
+                    $path = $file->store('attachments', ['disk' => 's3']);
                     $message->attachments()->create([
                         'path' => $path,
                         'original_name' => $file->getClientOriginalName(),
@@ -175,12 +169,12 @@ class MessagesController extends Controller
 
         $message->load('attachments');
 
-        $conversation->load([
-            'participants' => function ($builder) use ($user) {
-                return $builder->where('user_id', '<>', $user->id);
-            },
-            'lastMessage',
-        ]);
+        // $conversation->load([
+        //     'participants' => function ($builder) use ($user) {
+        //         return $builder->where('user_id', '<>', $user->id);
+        //     },
+        //     'lastMessage',
+        // ]);
 
         return successResponse(MessageResource::make($message), 'Message sent successfully');
     }
@@ -196,11 +190,11 @@ class MessagesController extends Controller
         }
 
         $path = $attachment->path;
-        if (!Storage::disk('attachments')->exists($path)) {
+        if (!Storage::disk('s3')->exists($path)) {
             abort(404, 'File not found.');
         }
 
-        return Storage::disk('attachments')->download(
+        return Storage::disk('s3')->download(
             $path,
             $attachment->original_name,
             [
