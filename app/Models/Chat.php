@@ -4,7 +4,7 @@ namespace App\Models;
 
 use App\Enums\ChatTypeEnum;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Chat extends Model
 {
@@ -22,10 +22,9 @@ class Chat extends Model
     /*
     | If type is group, then we need to get the participants
     */
-    public function participants()
+    public function participants(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'participants', 'chat_id', 'user_id')
-            ->where('participants.user_id', '<>', Auth::id())
             ->withPivot(['role', 'joined_at']);
     }
 
@@ -65,5 +64,4 @@ class Chat extends Model
             'id'
         );
     }
-
 }

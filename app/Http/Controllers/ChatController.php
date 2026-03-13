@@ -26,7 +26,7 @@ class ChatController extends Controller
                 $query->where('type', $value);
             })
             ->with([
-                'participants' => fn($q) => $q->where('users.id', '!=', Auth::id()),
+                'participants' => fn($query) => $query->where('user_id', '<>', $user->id),
                 'lastMessage.recipients',
             ])
             ->withCount([
@@ -52,7 +52,7 @@ class ChatController extends Controller
                 $query->where('type', $value);
             })
             ->with([
-                'participants' => fn($q) => $q->where('users.id', '!=', Auth::id()),
+                'participants' => fn($query) => $query->where('user_id', '<>', $user->id),
                 'messages.attachments',
             ])
             ->findOrFail($id);
@@ -84,14 +84,15 @@ class ChatController extends Controller
 
             $chat->participants()->attach([...$participants_ids, $user->id]);
 
+            $chat->load(['participants' => fn($query) => $query->where('user_id', '<>', $user->id)]);
+
             broadcast(new GroupCreated($chat))->toOthers();
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
         }
-        $chat->load('participants');
-        
+
         return successResponse(
             ChatResource::make($chat),
             'Group created successfully',
