@@ -55,7 +55,7 @@ class UserController extends Controller
         // });
 
         return successResponse(
-            UserResource::collection($users),
+            $users->map(fn(User $user) => UserResource::make($user)->serializeForContacts())->toArray(),
             'Search results',
             200
         );
