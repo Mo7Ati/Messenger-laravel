@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Enums\ChatTypeEnum;
+use App\Events\GroupCreated;
 use App\Http\Resources\ChatResource;
 use App\Models\Chat;
 use Auth;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 
 class ChatController extends Controller
@@ -26,7 +26,7 @@ class ChatController extends Controller
                 $query->where('type', $value);
             })
             ->with([
-                'participants',
+                'participants' => fn($q) => $q->where('users.id', '!=', Auth::id()),
                 'lastMessage.recipients',
             ])
             ->withCount([
@@ -52,7 +52,7 @@ class ChatController extends Controller
                 $query->where('type', $value);
             })
             ->with([
-                'participants',
+                'participants' => fn($q) => $q->where('users.id', '!=', Auth::id()),
                 'messages.attachments',
             ])
             ->findOrFail($id);
@@ -79,26 +79,19 @@ class ChatController extends Controller
             $chat = Chat::create([
                 'user_id' => $user->id,
                 'label' => $request->post('label'),
-                'type' => ChatTypeEnum::GROUP
+                'type' => ChatTypeEnum::GROUP,
             ]);
 
             $chat->participants()->attach([...$participants_ids, $user->id]);
 
+            broadcast(new GroupCreated($chat))->toOthers();
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
             throw $e;
         }
-        // [
-        //     'group' =>
-        //         $conversation->load([
-        //             'participants' => function ($query) use ($user) {
-        //                 return $query->where('user_id', '<>', $user->id);
-        //             },
-        //             'lastMessage'
-        //         ]),
-        // ];
-
+        $chat->load('participants');
+        
         return successResponse(
             ChatResource::make($chat),
             'Group created successfully',

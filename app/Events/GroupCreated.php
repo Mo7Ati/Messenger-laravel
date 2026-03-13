@@ -2,8 +2,9 @@
 
 namespace App\Events;
 
+use App\Http\Resources\ChatResource;
 use App\Http\Resources\MessageResource;
-use App\Models\Message;
+use App\Models\Chat;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -11,11 +12,11 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\DB;
 
-class MessageCreated implements ShouldBroadcast
+class GroupCreated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Message $message)
+    public function __construct(public Chat $chat)
     {
     }
 
@@ -24,24 +25,16 @@ class MessageCreated implements ShouldBroadcast
      */
     public function broadcastOn(): array
     {
-        $participantIds = DB::table('participants')
-            ->where('chat_id', $this->message->chat_id)
-            ->pluck('user_id');
-
-        return $participantIds
+        return $this->chat->participants
+            ->pluck('id')
             ->map(fn(int $userId) => new PrivateChannel('messenger.user.' . $userId))
             ->all();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
     public function broadcastWith(): array
     {
         return [
-            'message' => MessageResource::make(
-                $this->message->load(['user', 'attachments', 'chat'])
-            )->resolve(),
+            'group' => ChatResource::make($this->chat),
         ];
     }
 }

@@ -24,7 +24,6 @@ class UserController extends Controller
             return successResponse([], 'Search requires at least 2 characters', 200);
         }
 
-
         $users = User::query()
             ->where('is_discoverable', true)
             ->where('id', '!=', $currentUser->id)

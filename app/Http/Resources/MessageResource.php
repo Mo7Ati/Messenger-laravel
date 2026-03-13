@@ -16,23 +16,16 @@ class MessageResource extends JsonResource
             'body' => $this->body,
             'type' => $this->type,
             'is_mine' => $this->user_id == Auth::id(),
-            'is_read_by_all' => $this->whenLoaded('recipients', function ($recipients) {
-                return $recipients->every(function ($recipient) {
-                    return $recipient->read_at ? true : false;
+            'user_id' => $this->user_id,
+            'user' => UserResource::make($this->whenLoaded('user')),
+            'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
+            'chat' => ChatResource::make($this->whenLoaded('chat')),
+            'created_at' => $this->created_at?->format('g:i A'),
+            'is_read_by_all' => $this->whenLoaded('recipients', function () {
+                return $this->recipients->every(function ($recipient) {
+                    return (bool) $recipient->read_at;
                 });
             }),
-            'user' => $this->whenLoaded('user', $this->user),
-            'attachments' => $this->whenLoaded('attachments', function () {
-                return $this->attachments->map(fn($attachment) => [
-                    'id' => $attachment->id,
-                    'original_name' => $attachment->original_name,
-                    'mime_type' => $attachment->mime_type,
-                    'size' => $attachment->size,
-                    'path' => $attachment->path,
-                    // 'url' => route('messages.attachments.download', ['attachment' => $attachment->id]),
-                ]);
-            }),
-            'created_at' => $this->created_at?->format('H:i'),
         ];
     }
 }

@@ -1,7 +1,7 @@
 <?php
 
-use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\MessagesController;
 use App\Http\Controllers\UserController;

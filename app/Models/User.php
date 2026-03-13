@@ -168,6 +168,6 @@ class User extends Authenticatable
 
     public function getAvatarUrlAttribute()
     {
-        return url('https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=' . $this->name);
+        return url('https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=' . $this->username);
     }
 }

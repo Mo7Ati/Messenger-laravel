@@ -14,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class MessagesController extends Controller
@@ -102,7 +101,7 @@ class MessagesController extends Controller
                         'type' => 'peer',
                     ]);
                     $chat->participants()->attach([$user_id, $user->id]);
-                    
+
                 }
             }
 
@@ -146,28 +145,12 @@ class MessagesController extends Controller
             broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
 
-            // if ($chat->type == 'peer') {
-            //     $other_user = $chat
-            //         ->participants()
-            //         ->where('user_id', '<>', $message->user_id)->first();
-            //     broadcast(new MessageCreated($message, $other_user));
-
-            // } else {
-            //     $participants = $chat
-            //         ->participants()
-            //         ->where('user_id', '<>', $message->user_id)->get();
-
-            //     foreach ($participants as $participant) {
-            //         broadcast(new MessageCreated($message, $participant));
-            //     }
-            // }
-
         } catch (Throwable $e) {
             DB::rollBack();
             throw $e;
         }
 
-        $message->load('attachments');
+        $message->load(['attachments', 'user']);
 
         // $chat->load([
         //     'participants' => function ($builder) use ($user) {
@@ -176,7 +159,10 @@ class MessagesController extends Controller
         //     'lastMessage',
         // ]);
 
-        return successResponse(MessageResource::make($message), 'Message sent successfully');
+        return successResponse(
+            MessageResource::make($message),
+            'Message sent successfully'
+        );
     }
 
     public function downloadAttachment(Attachment $attachment)
