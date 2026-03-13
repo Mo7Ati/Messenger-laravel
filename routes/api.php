@@ -8,7 +8,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::any('/user', function (Request $request) {
+Route::get('/user', function (Request $request) {
     return successResponse($request->user());
 })->middleware('auth:sanctum');
 

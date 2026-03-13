@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Enums\ContactStatusEnum;
 use App\Enums\ChatTypeEnum;
+use App\Enums\ContactStatusEnum;
+use App\Events\ContactRequestSent;
+use App\Events\ContactRequestUpdated;
 use App\Http\Requests\SendContactRequestRequest;
 use App\Http\Resources\ChatResource;
 use App\Http\Resources\UserResource;
@@ -12,22 +14,9 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class ContactController extends Controller
 {
-    public function __construct()
-    {
-        DB::listen(function ($query): void {
-            Log::info('ContactController query', [
-                'sql' => $query->sql,
-                'bindings' => $query->bindings,
-                'time_ms' => $query->time,
-            ]);
-        });
-    }
-
     /**
      * Get all accepted contacts of the authenticated user.
      */
@@ -128,19 +117,13 @@ class ContactController extends Controller
             return $this->acceptRequest($request, $receiverId);
         }
 
-        DB::transaction(function () use ($user, $receiverId) {
-            Contact::create([
-                'sender_id' => $user->id,
-                'receiver_id' => $receiverId,
-                'status' => 'pending',
-            ]);
-            // Contact::create([
-            //     'user_id' => $contactId,
-            //     'contact_id' => $user->id,
-            //     'status' => 'pending',
-            //     'action_user_id' => $user->id,
-            // ]);
-        });
+        $contact = Contact::create([
+            'sender_id' => $user->id,
+            'receiver_id' => $receiverId,
+            'status' => 'pending',
+        ]);
+
+        ContactRequestSent::dispatch($contact);
 
         return successResponse(null, 'Contact request sent successfully', 201);
     }
@@ -162,6 +145,8 @@ class ContactController extends Controller
             'status' => ContactStatusEnum::ACCEPTED,
             'accepted_at' => now(),
         ]);
+
+        ContactRequestUpdated::dispatch($contact);
 
         return successResponse(
             $contact,
@@ -187,6 +172,8 @@ class ContactController extends Controller
         $contact->update([
             'status' => ContactStatusEnum::CANCELLED,
         ]);
+
+        ContactRequestUpdated::dispatch($contact);
 
         return successResponse(
             $contact,
