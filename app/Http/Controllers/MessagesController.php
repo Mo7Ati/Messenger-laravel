@@ -102,6 +102,7 @@ class MessagesController extends Controller
                         'type' => 'peer',
                     ]);
                     $chat->participants()->attach([$user_id, $user->id]);
+                    
                 }
             }
 

@@ -13,7 +13,6 @@ class UserResource extends JsonResource
         $currentUser = Auth::user();
         return [
             'id' => $this->id,
-            'name' => $this->name,
             'username' => $this->username,
             'avatar_url' => $this->avatar_url,
             'bio' => $this->bio,

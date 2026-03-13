@@ -30,11 +30,10 @@ class UserController extends Controller
             ->where('id', '!=', $currentUser->id)
             ->where(function ($q) use ($query) {
                 $q->where('username', 'like', "%{$query}%")
-                    ->orWhere('name', 'like', "%{$query}%")
                     ->orWhere('email', 'like', "%{$query}%");
             })
             ->limit(20)
-            ->get(['id', 'name', 'username', 'avatar', 'bio']);
+            ->get(['id', 'username', 'avatar', 'bio']);
 
         // $results = $users->map(function (User $user) use ($currentUser) {
         //     $contactStatus = 'none';

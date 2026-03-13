@@ -41,7 +41,7 @@ class MessageCreated implements ShouldBroadcast
             ->pluck('user_id');
 
         return $participantIds
-            ->map(fn (int $userId) => new PrivateChannel('messenger.user.'.$userId))
+            ->map(fn(int $userId) => new PrivateChannel('messenger.user.' . $userId))
             ->all();
     }
 }

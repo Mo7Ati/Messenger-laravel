@@ -59,17 +59,17 @@ class User extends Authenticatable
         ];
     }
 
-    public function conversation()
+    public function chat()
     {
-        return $this->hasOne(Conversation::class);
+        return $this->hasOne(Chat::class);
     }
 
     /*
-     * returns all conversations for the user
+     * returns all chats for the user
      */
-    public function conversations()
+    public function chats()
     {
-        return $this->belongsToMany(Conversation::class, 'participants')
+        return $this->belongsToMany(Chat::class, 'participants')
             ->latest('last_message_id')
             ->withPivot(['role', 'joined_at']);
     }

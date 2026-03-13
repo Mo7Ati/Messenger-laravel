@@ -19,7 +19,7 @@ class ChatResource extends JsonResource
             'id' => $this->id,
             'type' => $this->type->value,
             'label' => $this->getLabel(),
-            'participants' => ParticipantResource::collection($this->whenLoaded('participants')),
+            'participants' => UserResource::collection($this->whenLoaded('participants')),
             'last_message' => $this->whenLoaded('lastMessage', fn() => $this->last_message_id
                 ? MessageResource::make($this->lastMessage)
                 : null),
@@ -32,7 +32,7 @@ class ChatResource extends JsonResource
     public function getLabel(): string
     {
         return match ($this->type) {
-            ChatTypeEnum::PEER => $this->participants->first()->name,
+            ChatTypeEnum::PEER => $this->participants->first()->username,
             ChatTypeEnum::GROUP => $this->label,
             default => 'No label',
         };

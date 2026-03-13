@@ -15,6 +15,7 @@ Route::any('/user', function (Request $request) {
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('chats', [ChatController::class, 'index']);
     Route::get('chats/{chat}', [ChatController::class, 'show']);
+    Route::post('chats', [ChatController::class, 'store']);
     // Route::post('chats/{chat}/participants', [ChatController::class, 'addParticipant']);
     // Route::delete('chats/{chat}/participants', [ChatController::class, 'removeParticipant']);
 
@@ -26,8 +27,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Route::post('messages/{id}/read', [MessagesController::class, 'markAsRead']);
 
-    Route::get('groups', [GroupsController::class, 'index']);
-    Route::post('groups', [GroupsController::class, 'store']);
+    // Route::get('groups', [GroupsController::class, 'index']);
+    // Route::post('groups', [GroupsController::class, 'store']);
 
     Route::get('/contacts/search', [UserController::class, 'search']);
 
