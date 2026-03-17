@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ContactController;
-use App\Http\Controllers\GroupsController;
 use App\Http\Controllers\MessagesController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -44,4 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/contacts/accept/{user}', [ContactController::class, 'acceptRequest']);
     Route::post('/contacts/reject/{user}', [ContactController::class, 'rejectRequest']);
     Route::delete('/contacts/{user}', [ContactController::class, 'removeContact']);
+
+    Route::post('/user/profile', [ProfileController::class, 'updateProfile']);
+    Route::put('/user/password', [ProfileController::class, 'updatePassword']);
 });
