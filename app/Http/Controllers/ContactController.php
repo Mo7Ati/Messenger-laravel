@@ -14,6 +14,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class ContactController extends Controller
 {
@@ -40,13 +41,19 @@ class ContactController extends Controller
     public function show(Request $request, User $contact)
     {
         $user = Auth::user();
+
+        if (!$user->isContactWith($contact->id)) {
+            throw ValidationException::withMessages([
+                'contact' => 'Contact not found',
+            ]);
+        }
+
         $chat = $user->chats()
             ->where('type', ChatTypeEnum::PEER)
-            ->whereHas('participants', function ($query) use ($contact, $user) {
-                $query->where('user_id', $contact->id)
-                    ->where('user_id', '<>', $user->id);
+            ->withWhereHas('participants', function ($query) use ($contact, $user) {
+                $query->where('user_id', $contact->id);
             })
-            ->with('messages.attachments')
+            ->with(['messages' => ['attachments', 'user', 'recipients']])
             ->first();
 
         return successResponse(

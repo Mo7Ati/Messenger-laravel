@@ -114,7 +114,7 @@ class MessagesController extends Controller
 
             if ($hasAttachments) {
                 foreach ($request->file('attachments') as $file) {
-                    $path = $file->store('attachments', ['disk' => 'private']);
+                    $path = $file->store('attachments');
                     $message->attachments()->create([
                         'path' => $path,
                         'original_name' => $file->getClientOriginalName(),
@@ -152,13 +152,6 @@ class MessagesController extends Controller
 
         $message->load(['attachments', 'user']);
 
-        // $chat->load([
-        //     'participants' => function ($builder) use ($user) {
-        //         return $builder->where('user_id', '<>', $user->id);
-        //     },
-        //     'lastMessage',
-        // ]);
-
         return successResponse(
             MessageResource::make($message),
             'Message sent successfully'
@@ -176,11 +169,11 @@ class MessagesController extends Controller
         }
 
         $path = $attachment->path;
-        if (!Storage::disk('private')->exists($path)) {
+        if (!Storage::exists($path)) {
             abort(404, 'File not found.');
         }
 
-        return Storage::disk('private')->download(
+        return Storage::download(
             $path,
             $attachment->original_name,
             [
@@ -223,27 +216,4 @@ class MessagesController extends Controller
         ];
     }
 
-    public function markAsRead(string $id)
-    {
-        $user = Auth::user();
-        DB::beginTransaction();
-        try {
-            DB::statement('
-                UPDATE recipients
-                inner join messages on messages.id = recipients.message_id
-                SET recipients.read_at = ?
-                where recipients.user_id = ?
-                      and messages.chat_id = ?
-                      and recipients.read_at is null
-            ', [now(), $user->id, $id]);
-            DB::commit();
-        } catch (\Exception $e) {
-            DB::rollBack();
-            throw $e;
-        }
-
-        return [
-            'message' => 'All Messages Read',
-        ];
-    }
 }

@@ -21,10 +21,8 @@ class MessageResource extends JsonResource
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
             'chat' => ChatResource::make($this->whenLoaded('chat')),
             'created_at' => $this->created_at?->format('g:i A'),
-            'is_read_by_all' => $this->whenLoaded('recipients', function () {
-                return $this->recipients->every(function ($recipient) {
-                    return (bool) $recipient->read_at;
-                });
+            'is_read_by_all' => $this->whenLoaded('recipients', function ($recipients) {
+                return $recipients->every(fn($recipient) => (bool) $recipient->pivot->read_at);
             }),
         ];
     }

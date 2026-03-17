@@ -43,19 +43,18 @@ class ChatController extends Controller
     public function show($id)
     {
         $user = Auth::user();
-        $data = request()->validate([
-            'type' => ['nullable', Rule::enum(ChatTypeEnum::class)],
-        ]);
 
+        // retrieve the chat with the messages, attachments and user
         $chat = $user->chats()
-            ->when($data['type'] ?? null, function ($query, $value) {
-                $query->where('type', $value);
-            })
             ->with([
                 'participants' => fn($query) => $query->where('user_id', '<>', $user->id),
-                'messages.attachments',
+                'messages' => ['attachments', 'user', 'recipients'],
+            ])
+            ->withCount([
+                'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
             ])
             ->findOrFail($id);
+
 
         return successResponse(
             ChatResource::make($chat),
@@ -118,7 +117,31 @@ class ChatController extends Controller
         $chat->participants()->detach($request->post('user_id'));
     }
 
-    public function destroy($id)
+    public function markAsRead($id)
     {
+        $user = Auth::user();
+        $chat = $user->chats()->findOrFail($id);
+
+        $chat->recipients()
+            ->whereNull('recipients.read_at')
+            ->where('recipients.user_id', $user->id)
+            ->update([
+                'read_at' => now(),
+            ]);
+
+        // DB::statement('
+        //     UPDATE recipients
+        //     inner join messages on messages.id = recipients.message_id
+        //     SET recipients.read_at = ?
+        //     where recipients.user_id = ?
+        //           and messages.chat_id = ?
+        //           and recipients.read_at is null
+        // ', [now(), $user->id, $id]);
+
+        return successResponse(
+            null,
+            'All Messages Read',
+            200
+        );
     }
 }
