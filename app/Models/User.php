@@ -167,6 +167,11 @@ class User extends Authenticatable
         return 'none';
     }
 
+    public function socialAccounts()
+    {
+        return $this->hasMany(SocialAccount::class);
+    }
+
     public function getAvatarUrlAttribute()
     {
         if ($this->avatar) {

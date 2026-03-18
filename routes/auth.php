@@ -8,8 +8,14 @@ use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\Auth\RegisteredUserController;
+use App\Http\Controllers\Auth\SocialAuthController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
+
+Route::prefix('api')->group(function () {
+    Route::get('auth/{provider}/redirect', [SocialAuthController::class, 'redirect']);
+    Route::get('auth/{provider}/callback', [SocialAuthController::class, 'callback']);
+});
 
 Route::middleware('guest')->prefix('api')->group(function () {
     Route::post('register', [RegisteredUserController::class, 'store']);
