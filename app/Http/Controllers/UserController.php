@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Auth;
 class UserController extends Controller
 {
     /**
-     * Search users by username, name, or email.
+     * Search users by name, email.
      * Only discoverable users, excludes current user.
      * Adds contact_status for each result.
      */
@@ -28,11 +28,11 @@ class UserController extends Controller
             ->where('is_discoverable', true)
             ->where('id', '!=', $currentUser->id)
             ->where(function ($q) use ($query) {
-                $q->where('username', 'like', "%{$query}%")
+                $q->where('name', 'like', "%{$query}%")
                     ->orWhere('email', 'like', "%{$query}%");
             })
             ->limit(20)
-            ->get(['id', 'username', 'avatar', 'bio']);
+            ->get(['id', 'name', 'avatar', 'bio']);
 
         // $results = $users->map(function (User $user) use ($currentUser) {
         //     $contactStatus = 'none';
@@ -47,7 +47,7 @@ class UserController extends Controller
         //     return [
         //         'id' => $user->id,
         //         'name' => $user->name,
-        //         'username' => $user->username,
+        //         'name' => $user->name,
         //         'avatar' => $user->avatar,
         //         'bio' => $user->bio,
         //         'contact_status' => $contactStatus,

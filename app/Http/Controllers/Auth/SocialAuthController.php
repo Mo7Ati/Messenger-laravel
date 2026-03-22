@@ -55,7 +55,7 @@ class SocialAuthController extends Controller
 
             if (!$user) {
                 $user = User::create([
-                    'username' => $this->generateUniqueUsername($socialUser),
+                    'name' => $this->generateUniqueName($socialUser),
                     'email' => $socialUser->getEmail(),
                     'password' => null,
                     'email_verified_at' => now(),
@@ -86,18 +86,18 @@ class SocialAuthController extends Controller
         }
     }
 
-    private function generateUniqueUsername($socialUser): string
+    private function generateUniqueName($socialUser): string
     {
         $base = $socialUser->getNickname()
             ?? Str::slug($socialUser->getName(), '_')
             ?? Str::before($socialUser->getEmail(), '@');
 
-        $username = Str::limit($base, 250, '');
+        $name = Str::limit($base, 250, '');
 
-        while (User::where('username', $username)->exists()) {
-            $username = $base . '_' . rand(100, 9999);
+        while (User::where('name', $name)->exists()) {
+            $name = $base . '_' . rand(100, 9999);
         }
 
-        return $username;
+        return $name;
     }
 }

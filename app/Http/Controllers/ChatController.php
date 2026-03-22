@@ -27,7 +27,7 @@ class ChatController extends Controller
             })
             ->with([
                 'participants' => fn($query) => $query->where('user_id', '<>', $user->id),
-                'lastMessage.recipients',
+                'lastMessage' => ['recipients', 'user'],
             ])
             ->withCount([
                 'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),

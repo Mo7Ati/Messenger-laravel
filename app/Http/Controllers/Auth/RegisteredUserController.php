@@ -9,8 +9,10 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
+use Illuminate\Validation\Rules\File;
 
 class RegisteredUserController extends Controller
 {
@@ -22,16 +24,23 @@ class RegisteredUserController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'username' => ['required', 'string', 'max:255', Rule::unique(User::class)],
+            'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', Rule::unique(User::class)],
-            'password' => ['required', Rules\Password::defaults()], // 'confirmed',
+            'password' => ['required', Rules\Password::defaults()],
+            'avatar' => ['nullable', File::types(['jpeg', 'jpg', 'png', 'gif', 'webp'])->max(2 * 1024)],
         ]);
 
-        $user = User::create([
-            'username' => $request->username,
+        $data = [
+            'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-        ]);
+        ];
+
+        if ($request->hasFile('avatar')) {
+            $data['avatar'] = $request->file('avatar')->store('avatars', 'public');
+        }
+
+        $user = User::create($data);
 
         event(new Registered($user));
 

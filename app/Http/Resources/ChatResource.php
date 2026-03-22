@@ -32,7 +32,7 @@ class ChatResource extends JsonResource
     public function getLabel(): string
     {
         return match ($this->type) {
-            ChatTypeEnum::PEER => $this->participants->first()->username,
+            ChatTypeEnum::PEER => $this->participants->first()->name,
             ChatTypeEnum::GROUP => $this->label,
             default => 'No label',
         };

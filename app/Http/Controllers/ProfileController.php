@@ -18,7 +18,7 @@ class ProfileController extends Controller
     public function updateProfile(UpdateProfileRequest $request)
     {
         $user = Auth::user();
-        $data = $request->only(['username', 'bio', 'email']);
+        $data = $request->only(['name', 'bio', 'email']);
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
