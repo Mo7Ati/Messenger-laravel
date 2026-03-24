@@ -10,12 +10,22 @@ class UserResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $currentUser = Auth::user();
+
         return [
             'id' => $this->id,
             'name' => $this->name,
+            'email' => $this->email,
             'avatar_url' => $this->avatar_url,
             'bio' => $this->bio,
             'phone' => $this->phone,
+            'contact_status' => $this->when(
+                $currentUser && $this->id != $currentUser->id,
+                fn() => $currentUser->contactStatus($this->id)
+            ),
+            'role' => $this->whenPivotLoaded('participants', function () {
+                return $this->pivot?->role;
+            }),
         ];
     }
     public function serializeForContacts(): array

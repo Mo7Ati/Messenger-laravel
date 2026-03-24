@@ -127,7 +127,7 @@ class ContactController extends Controller
         $contact = Contact::create([
             'sender_id' => $user->id,
             'receiver_id' => $receiverId,
-            'status' => 'pending',
+            'status' => ContactStatusEnum::PENDING,
         ]);
 
         ContactRequestSent::dispatch($contact);

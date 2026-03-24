@@ -9,20 +9,21 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Illuminate\Support\Facades\Log;
-class GroupCreated implements ShouldBroadcast
+
+class AddedToGroup implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public Chat $chat;
-
-    public function __construct(Chat $chat)
+    public function __construct(public Chat $chat, public ?int $newUserId = null)
     {
-        $this->chat = $chat;
     }
 
     public function broadcastOn(): array
     {
+        if ($this->newUserId) {
+            return [new PrivateChannel('messenger.user.' . $this->newUserId)];
+        }
+
         return $this->chat
             ->participants()
             ->where('users.id', '<>', $this->chat->user_id)
@@ -34,9 +35,7 @@ class GroupCreated implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
-        $chat = $this->chat->load([
-            'participants' => fn($query) => $query->where('users.id', '<>', $this->chat->user_id),
-        ]);
+        $chat = $this->chat->load('participants');
 
         return [
             'group' => ChatResource::make($chat),

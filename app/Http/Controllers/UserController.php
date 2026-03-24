@@ -34,26 +34,6 @@ class UserController extends Controller
             ->limit(20)
             ->get(['id', 'name', 'avatar', 'bio']);
 
-        // $results = $users->map(function (User $user) use ($currentUser) {
-        //     $contactStatus = 'none';
-        //     if ($currentUser->isContactWith($user->id)) {
-        //         $contactStatus = 'contacts';
-        //     } elseif ($currentUser->hasSentRequestTo($user->id)) {
-        //         $contactStatus = 'request_sent';
-        //     } elseif ($currentUser->hasPendingRequestFrom($user->id)) {
-        //         $contactStatus = 'request_received';
-        //     }
-
-        //     return [
-        //         'id' => $user->id,
-        //         'name' => $user->name,
-        //         'name' => $user->name,
-        //         'avatar' => $user->avatar,
-        //         'bio' => $user->bio,
-        //         'contact_status' => $contactStatus,
-        //     ];
-        // });
-
         return successResponse(
             $users->map(fn(User $user) => UserResource::make($user)->serializeForContacts())->toArray(),
             'Search results',

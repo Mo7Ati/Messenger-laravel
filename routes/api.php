@@ -18,8 +18,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('chats/{chat}', [ChatController::class, 'show']);
     Route::post('chats', [ChatController::class, 'store']);
     Route::post('chats/{chat}/mark-as-read', [ChatController::class, 'markAsRead']);
-    // Route::post('chats/{chat}/participants', [ChatController::class, 'addParticipant']);
-    // Route::delete('chats/{chat}/participants', [ChatController::class, 'removeParticipant']);
+    Route::post('chats/{chat}/participants', [ChatController::class, 'addParticipant']);
+    Route::delete('chats/{chat}/participants/{userId}', [ChatController::class, 'removeParticipant']);
 
     // Route::get('chats/{id}/messages', [MessagesController::class, 'index']);
     Route::post('messages', [MessagesController::class, 'store']);

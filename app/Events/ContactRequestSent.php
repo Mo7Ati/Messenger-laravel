@@ -15,7 +15,9 @@ class ContactRequestSent implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    public function __construct(public Contact $contact) {}
+    public function __construct(public Contact $contact)
+    {
+    }
 
     /**
      * @return array<int, \Illuminate\Broadcasting\Channel>
@@ -23,7 +25,7 @@ class ContactRequestSent implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('messenger.user.'.$this->contact->receiver_id),
+            new PrivateChannel('messenger.user.' . $this->contact->receiver_id),
         ];
     }
 

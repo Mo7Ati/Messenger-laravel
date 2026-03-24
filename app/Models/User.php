@@ -171,6 +171,14 @@ class User extends Authenticatable
         return $this->hasMany(SocialAccount::class);
     }
 
+    public function isAdminOfChat(Chat $chat): bool
+    {
+        return $chat->participants()->where([
+            'participants.user_id' => $this->id,
+            'participants.role' => 'admin',
+        ])->exists();
+    }
+
     public function getAvatarUrlAttribute()
     {
         if ($this->avatar) {
