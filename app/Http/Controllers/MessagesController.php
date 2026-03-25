@@ -171,7 +171,7 @@ class MessagesController extends Controller
                 abort(403, 'You do not have access to this attachment.');
             }
 
-            return Storage::download($attachment->path);
+            return Storage::get($attachment->path);
 
         } catch (Throwable $e) {
             return errorResponse($e->getMessage(), 500);
