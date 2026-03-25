@@ -171,17 +171,9 @@ class MessagesController extends Controller
                 abort(403, 'You do not have access to this attachment.');
             }
 
-            $path = $attachment->path;
-            if (!Storage::exists($path)) {
-                abort(404, 'File not found.');
-            }
-
-            return Storage::download(
-                $path,
-                $attachment->original_name,
-            );
+            return Storage::get($attachment->path);
         } catch (Throwable $e) {
-            return $e->getMessage();
+            return errorResponse($e->getMessage(), 500);
         }
     }
     // [
