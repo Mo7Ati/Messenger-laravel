@@ -10,7 +10,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
-    return successResponse(UserResource::make($request->user()));
+    $user = $request->user();
+    return successResponse(UserResource::make($user));
 })->middleware('auth:sanctum');
 
 Route::middleware('auth:sanctum')->group(function () {

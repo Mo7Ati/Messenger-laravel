@@ -162,52 +162,29 @@ class MessagesController extends Controller
     public function downloadAttachment(Attachment $attachment)
     {
         $user = Auth::user();
-        Log::info('MessagesController@downloadAttachment: download requested', [
-            'user_id' => $user->id,
-            'attachment_id' => $attachment->id,
-            'original_name' => $attachment->original_name,
-            'mime_type' => $attachment->mime_type,
-            'size' => $attachment->size,
-        ]);
 
         $message = $attachment->message;
         $chat = $message->chat;
 
         if (!$user->chats()->where('chats.id', $chat->id)->exists()) {
-            Log::warning('MessagesController@downloadAttachment: unauthorized access attempt', [
-                'user_id' => $user->id,
-                'attachment_id' => $attachment->id,
-                'chat_id' => $chat->id,
-                'message_id' => $message->id,
-            ]);
             abort(403, 'You do not have access to this attachment.');
         }
 
         $path = $attachment->path;
         if (!Storage::exists($path)) {
-            Log::error('MessagesController@downloadAttachment: file not found on disk', [
-                'user_id' => $user->id,
-                'attachment_id' => $attachment->id,
-                'path' => $path,
-            ]);
             abort(404, 'File not found.');
         }
 
-        Log::info('MessagesController@downloadAttachment: serving file', [
-            'user_id' => $user->id,
-            'attachment_id' => $attachment->id,
-            'path' => $path,
-            'original_name' => $attachment->original_name,
-        ]);
-
-        return Storage::download(
+        $response = Storage::download(
             $path,
             $attachment->original_name,
-            [
-                'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
-            ]
         );
+
+        return $response;
     }
+    // [
+    //     'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
+    // ]
 
     /**
      * Display the specified resource.

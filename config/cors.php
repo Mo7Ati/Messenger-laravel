@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    'allowed_origins' => [
+        'https://www.dawly.pro',
+    ],
 
     'allowed_origins_patterns' => [],
 
