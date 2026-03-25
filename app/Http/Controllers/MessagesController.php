@@ -161,26 +161,28 @@ class MessagesController extends Controller
 
     public function downloadAttachment(Attachment $attachment)
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        $message = $attachment->message;
-        $chat = $message->chat;
+            $message = $attachment->message;
+            $chat = $message->chat;
 
-        if (!$user->chats()->where('chats.id', $chat->id)->exists()) {
-            abort(403, 'You do not have access to this attachment.');
+            if (!$user->chats()->where('chats.id', $chat->id)->exists()) {
+                abort(403, 'You do not have access to this attachment.');
+            }
+
+            $path = $attachment->path;
+            if (!Storage::exists($path)) {
+                abort(404, 'File not found.');
+            }
+
+            return Storage::download(
+                $path,
+                $attachment->original_name,
+            );
+        } catch (Throwable $e) {
+            return $e->getMessage();
         }
-
-        $path = $attachment->path;
-        if (!Storage::exists($path)) {
-            abort(404, 'File not found.');
-        }
-
-        $response = Storage::download(
-            $path,
-            $attachment->original_name,
-        );
-
-        return $response;
     }
     // [
     //     'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
