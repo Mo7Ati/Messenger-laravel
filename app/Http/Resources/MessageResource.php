@@ -24,14 +24,18 @@ class MessageResource extends JsonResource
             'is_read_by_all' => $this->whenLoaded('recipients', function ($recipients) {
                 return $recipients->every(fn($recipient) => (bool) $recipient->pivot->read_at);
             }),
-            'readers' => $this->whenLoaded('recipients', function ($recipients) {
-                return UserResource::collection(
-                    $recipients->filter(fn($recipient) =>
-                        $recipient->pivot->read_at !== null &&
-                        $recipient->id !== $this->user_id
-                    )
-                );
-            }),
+            'readers' => $this->when(
+                $this->user_id == Auth::id(),
+                fn() => $this->whenLoaded('recipients', function ($recipients) {
+                    return UserResource::collection(
+                        $recipients->filter(
+                            fn($recipient) =>
+                            $recipient->pivot->read_at !== null &&
+                            $recipient->id !== $this->user_id
+                        )
+                    );
+                })
+            ),
         ];
     }
 }

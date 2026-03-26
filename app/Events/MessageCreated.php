@@ -39,10 +39,13 @@ class MessageCreated implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+        $this->message->load(['user', 'attachments', 'chat']);
+
+        $data = MessageResource::make($this->message)->resolve();
+        unset($data['is_mine']);
+
         return [
-            'message' => MessageResource::make(
-                $this->message->load(['user', 'attachments', 'chat'])
-            )->resolve(),
+            'message' => $data,
         ];
     }
 }

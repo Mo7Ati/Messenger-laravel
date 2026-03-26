@@ -171,7 +171,12 @@ class MessagesController extends Controller
                 abort(403, 'You do not have access to this attachment.');
             }
 
-            return Storage::get($attachment->path);
+            return successResponse([
+                Storage::temporaryUrl(
+                    $attachment->path,
+                    now()->addMinutes(30)
+                ),
+            ]);
 
         } catch (Throwable $e) {
             return errorResponse($e->getMessage(), 500);
