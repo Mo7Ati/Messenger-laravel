@@ -18,7 +18,7 @@ class ProfileController extends Controller
     public function updateProfile(UpdateProfileRequest $request)
     {
         $user = Auth::user();
-        $data = $request->only(['name', 'bio', 'email']);
+        $data = $request->only(['name', 'bio', 'email', 'phone']);
 
         if ($request->hasFile('avatar')) {
             if ($user->avatar) {
@@ -32,6 +32,20 @@ class ProfileController extends Controller
         $user->refresh();
 
         return successResponse(UserResource::make($user), 'Profile updated successfully');
+    }
+
+    public function deleteAvatar()
+    {
+        $user = Auth::user();
+
+        if (!$user->avatar) {
+            return errorResponse('No avatar to delete.', 404);
+        }
+
+        Storage::disk('public')->delete($user->avatar);
+        $user->update(['avatar' => null]);
+
+        return successResponse(UserResource::make($user->refresh()), 'Avatar deleted successfully.');
     }
 
     public function updatePassword(UpdatePasswordRequest $request)

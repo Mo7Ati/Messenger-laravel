@@ -48,5 +48,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/contacts/{user}', [ContactController::class, 'removeContact']);
 
     Route::post('/user/profile', [ProfileController::class, 'updateProfile']);
+    Route::delete('/user/avatar', [ProfileController::class, 'deleteAvatar']);
     Route::put('/user/password', [ProfileController::class, 'updatePassword']);
 });

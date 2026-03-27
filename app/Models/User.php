@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ContactStatusEnum;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -29,10 +30,6 @@ class User extends Authenticatable
         'is_discoverable',
         'bio',
         'avatar',
-    ];
-
-    protected $appends = [
-        'avatar_url',
     ];
 
     /**
@@ -179,12 +176,12 @@ class User extends Authenticatable
         ])->exists();
     }
 
-    public function getAvatarUrlAttribute()
+    protected function avatar(): Attribute
     {
-        if ($this->avatar) {
-            return Storage::disk('public')->url($this->avatar);
-        }
-
-        return 'https://ui-avatars.com/api/?background=0D8ABC&color=fff&name=' . urlencode($this->name);
+        return Attribute::make(
+            get: fn(?string $value) => $value
+                ? Storage::disk('public')->url($value)
+                : null,
+        );
     }
 }
