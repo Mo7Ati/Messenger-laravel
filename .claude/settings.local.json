@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(php artisan:*)"
+      "Bash(php artisan:*)",
+      "Bash(grep -r \"ConversationTypeEnum\\\\|ConversationResource\" '/c/Users/Dawly/OneDrive/سطح المكتب/messenger/Messenger/app' --include=*.php)",
+      "Bash(grep -r Conversation '/c/Users/Dawly/OneDrive/سطح المكتب/messenger/Messenger/app' --include=*.php)",
+      "Bash(grep -r \"successResponse\\\\|errorResponse\" '/c/Users/Dawly/OneDrive/سطح المكتب/messenger/Messenger/app' --include=*.php -l)"
     ]
   }
 }

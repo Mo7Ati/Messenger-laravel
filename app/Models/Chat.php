@@ -12,6 +12,7 @@ class Chat extends Model
         'user_id',
         'last_message_id',
         'label',
+        'avatar',
         'type',
     ];
 
@@ -46,8 +47,7 @@ class Chat extends Model
     */
     public function lastMessage()
     {
-        return $this->belongsTo(Message::class, 'last_message_id', 'id')
-            ->withDefault();
+        return $this->belongsTo(Message::class, 'last_message_id', 'id');
     }
 
     /*

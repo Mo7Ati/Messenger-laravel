@@ -6,7 +6,6 @@ use App\Http\Resources\MessageResource;
 use App\Models\Message;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
-use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
@@ -34,18 +33,11 @@ class MessageCreated implements ShouldBroadcastNow
             ->all();
     }
 
-    /**
-     * @return array<string, mixed>
-     */
+
     public function broadcastWith(): array
     {
-        $this->message->load(['user', 'attachments', 'chat']);
-
-        $data = MessageResource::make($this->message)->resolve();
-        unset($data['is_mine']);
-
         return [
-            'message' => $data,
+            'message' => MessageResource::make($this->message)->toArray(request(), isMine: false),
         ];
     }
 }

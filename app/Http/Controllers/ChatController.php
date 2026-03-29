@@ -10,6 +10,7 @@ use Auth;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 
 class ChatController extends Controller
@@ -17,12 +18,14 @@ class ChatController extends Controller
     public function index()
     {
         $user = Auth::user();
-        $data = request()->validate([
+        $request = request();
+
+        $request->validate([
             'type' => ['nullable', Rule::enum(ChatTypeEnum::class)],
         ]);
 
         $chats = $user->chats()
-            ->when($data['type'] ?? null, function ($query, $value) {
+            ->when($request->input('type'), function ($query, $value) {
                 $query->where('type', $value);
             })
             ->with([
@@ -30,7 +33,7 @@ class ChatController extends Controller
                 'lastMessage' => ['recipients', 'user'],
             ])
             ->withCount([
-                'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
+                'recipients as unread_messages_count' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
             ])
             ->get();
 
@@ -55,7 +58,6 @@ class ChatController extends Controller
             ])
             ->findOrFail($id);
 
-
         return successResponse(
             ChatResource::make($chat),
             'Chat fetched successfully'
@@ -75,18 +77,25 @@ class ChatController extends Controller
 
         DB::beginTransaction();
         try {
-            $chat = Chat::create([
+            $chatData = [
                 'user_id' => $user->id,
                 'label' => $request->post('label'),
                 'type' => ChatTypeEnum::GROUP,
-            ]);
+            ];
+
+            if ($request->hasFile('avatar')) {
+                $chatData['avatar'] = $request->file('avatar')->store('group-avatars', 'public');
+            }
+
+            $chat = Chat::create($chatData);
 
             $chat->participants()->attach($participants_ids);
             $chat->participants()->attach($user->id, ['role' => 'admin']);
 
-            $chat->load('participants');
+            $chat->load(['participants', 'lastMessage' => ['user']]);
 
             broadcast(new AddedToGroup($chat))->toOthers();
+
             DB::commit();
         } catch (Exception $e) {
             DB::rollBack();
@@ -115,6 +124,8 @@ class ChatController extends Controller
         $userId = $request->post('user_id');
         $chat->participants()->attach($userId);
 
+        $chat->load(['participants', 'lastMessage' => ['user']]);
+
         broadcast(new AddedToGroup($chat, (int) $userId));
 
         return successResponse(
@@ -138,6 +149,35 @@ class ChatController extends Controller
             null,
             'Participant removed successfully',
             200
+        );
+    }
+
+    public function updateAvatar(Request $request, Chat $chat)
+    {
+        $user = Auth::user();
+
+        if (!$user->isAdminOfChat($chat)) {
+            return errorResponse('You are not authorized to update this group avatar', 403);
+        }
+
+        $request->validate([
+            'avatar' => ['required', 'image', 'mimes:jpeg,png,jpg,gif,svg', 'max:2048'],
+        ]);
+
+        $oldAvatar = $chat->getRawOriginal('avatar');
+        if ($oldAvatar) {
+            Storage::disk('public')->delete($oldAvatar);
+        }
+
+        $chat->update([
+            'avatar' => $request->file('avatar')->store('group-avatars', 'public'),
+        ]);
+
+        $chat->load('participants');
+
+        return successResponse(
+            null,
+            'Group avatar updated successfully'
         );
     }
 

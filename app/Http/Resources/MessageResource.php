@@ -8,32 +8,35 @@ use Illuminate\Support\Facades\Auth;
 
 class MessageResource extends JsonResource
 {
-    public function toArray(Request $request): array
+    public function toArray(Request $request, ?bool $isMine = null): array
     {
+        $isMine = $isMine ?? ($this->user_id == Auth::id());
+
         return [
             'id' => $this->id,
             'chat_id' => $this->chat_id,
             'body' => $this->body,
             'type' => $this->type,
-            'is_mine' => $this->user_id == Auth::id(),
+            'is_mine' => $isMine,
             'user_id' => $this->user_id,
             'user' => UserResource::make($this->whenLoaded('user')),
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
             'chat' => ChatResource::make($this->whenLoaded('chat')),
-            'created_at' => $this->created_at?->format('g:i A'),
-            'is_read_by_all' => $this->whenLoaded('recipients', function ($recipients) {
-                return $recipients->every(fn($recipient) => (bool) $recipient->pivot->read_at);
-            }),
-            'readers' => $this->when(
-                $this->user_id == Auth::id(),
+            'created_at' => [
+                'value' => $this->created_at,
+                'label' => $this->created_at?->format('g:i A'),
+            ],
+            'status' => $this->when(
+                $isMine,
                 fn() => $this->whenLoaded('recipients', function ($recipients) {
-                    return UserResource::collection(
-                        $recipients->filter(
-                            fn($recipient) =>
-                            $recipient->pivot->read_at !== null &&
-                            $recipient->id !== $this->user_id
-                        )
+                    $readers = $recipients->filter(
+                        fn($r) => (bool) $r->pivot->read_at
                     );
+
+                    return [
+                        'is_read_by_all' => $readers->count() === $recipients->count(),
+                        'readers' => UserResource::collection($readers),
+                    ];
                 })
             ),
         ];

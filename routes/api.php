@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/user', function (Request $request) {
     $user = $request->user();
+
     return successResponse(UserResource::make($user));
 })->middleware('auth:sanctum');
 
@@ -21,6 +22,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('chats/{chat}/mark-as-read', [ChatController::class, 'markAsRead']);
     Route::post('chats/{chat}/participants', [ChatController::class, 'addParticipant']);
     Route::delete('chats/{chat}/participants/{userId}', [ChatController::class, 'removeParticipant']);
+    Route::post('chats/{chat}/avatar', [ChatController::class, 'updateAvatar']);
 
     // Route::get('chats/{id}/messages', [MessagesController::class, 'index']);
     Route::post('messages', [MessagesController::class, 'store']);

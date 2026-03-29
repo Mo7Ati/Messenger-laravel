@@ -35,10 +35,8 @@ class AddedToGroup implements ShouldBroadcast
 
     public function broadcastWith(): array
     {
-        $chat = $this->chat->load('participants');
-
         return [
-            'group' => ChatResource::make($chat),
+            'group' => ChatResource::make($this->chat),
         ];
     }
 }

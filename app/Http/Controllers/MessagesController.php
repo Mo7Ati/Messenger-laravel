@@ -12,7 +12,6 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rules\File;
 use Throwable;
@@ -132,16 +131,11 @@ class MessagesController extends Controller
                 and participants.user_id <> ?
             ', [$message->id, $chat->id, $user->id]);
 
-            // $participants = $chat->participants()->where('user_id', '<>', $user->id)->get();
-            // foreach ($participants as $participant) {
-            //     $message->recipients()->attach([
-            //         'user_id' => $participant->id,
-            //     ]);
-            // }
-
             $chat->update([
                 'last_message_id' => $message->id,
             ]);
+
+            $message->load(['attachments', 'user:id,name', 'chat' => ['participants']]);
 
             broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
@@ -150,8 +144,6 @@ class MessagesController extends Controller
             DB::rollBack();
             throw $e;
         }
-
-        $message->load(['attachments', 'user']);
 
         return successResponse(
             MessageResource::make($message),
@@ -182,9 +174,6 @@ class MessagesController extends Controller
             return errorResponse($e->getMessage(), 500);
         }
     }
-    // [
-    //     'Content-Type' => $attachment->mime_type ?? 'application/octet-stream',
-    // ]
 
     /**
      * Display the specified resource.
@@ -219,5 +208,4 @@ class MessagesController extends Controller
             'Message Deleted',
         ];
     }
-
 }
