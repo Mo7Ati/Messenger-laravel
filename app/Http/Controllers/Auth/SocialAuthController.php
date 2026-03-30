@@ -58,7 +58,6 @@ class SocialAuthController extends Controller
                     'name' => $this->generateUniqueName($socialUser),
                     'email' => $socialUser->getEmail(),
                     'avatar' => $socialUser->getAvatar(),
-                    'phone' => $socialUser->get(),
                     'password' => null,
                     'email_verified_at' => now(),
                 ]);
