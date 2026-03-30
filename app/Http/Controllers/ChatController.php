@@ -54,7 +54,7 @@ class ChatController extends Controller
                 'messages' => ['attachments', 'user', 'recipients'],
             ])
             ->withCount([
-                'recipients' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
+                'recipients as unread_messages_count' => fn($builder) => $builder->where('recipients.user_id', $user->id)->whereNull('recipients.read_at'),
             ])
             ->findOrFail($id);
 
