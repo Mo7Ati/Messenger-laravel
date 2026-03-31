@@ -28,13 +28,4 @@ class UserResource extends JsonResource
             }),
         ];
     }
-    public function serializeForContacts(): array
-    {
-        $currentUser = Auth::user();
-
-        return [
-            ...$this->toArray(request()),
-            'contact_status' => $currentUser->contactStatus($this->id),
-        ];
-    }
 }

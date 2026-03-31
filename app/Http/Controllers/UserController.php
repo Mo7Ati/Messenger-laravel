@@ -29,13 +29,15 @@ class UserController extends Controller
             ->where('id', '!=', $currentUser->id)
             ->where(function ($q) use ($query) {
                 $q->where('name', 'like', "%{$query}%")
-                    ->orWhere('email', 'like', "%{$query}%");
+                    ->orWhere('email', 'like', "%{$query}%")
+                    ->orWhere('phone', 'like', "%{$query}%")
+                    ->orWhere('bio', 'like', "%{$query}%");
             })
             ->limit(20)
-            ->get(['id', 'name', 'avatar', 'bio']);
+            ->get();
 
         return successResponse(
-            $users->map(fn(User $user) => UserResource::make($user)->serializeForContacts())->toArray(),
+            $users->map(fn(User $user) => UserResource::make($user))->toArray(),
             'Search results',
             200
         );
