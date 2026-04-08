@@ -32,12 +32,4 @@ class MessageCreated implements ShouldBroadcastNow
             ->map(fn(int $userId) => new PrivateChannel('messenger.user.' . $userId))
             ->all();
     }
-
-
-    public function broadcastWith(): array
-    {
-        return [
-            'message' => MessageResource::make($this->message)->toArray(request(), isMine: false),
-        ];
-    }
 }

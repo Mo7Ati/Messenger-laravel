@@ -22,10 +22,7 @@ class MessageResource extends JsonResource
             'user' => UserResource::make($this->whenLoaded('user')),
             'attachments' => MessageAttachmentResource::collection($this->whenLoaded('attachments')),
             'chat' => ChatResource::make($this->whenLoaded('chat')),
-            'created_at' => [
-                'value' => $this->created_at,
-                'label' => $this->created_at?->format('g:i A'),
-            ],
+            'created_at' => $this->created_at,
             'status' => $this->when(
                 $isMine,
                 fn() => $this->whenLoaded('recipients', function ($recipients) {

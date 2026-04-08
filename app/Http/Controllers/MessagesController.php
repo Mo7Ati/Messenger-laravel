@@ -135,7 +135,7 @@ class MessagesController extends Controller
                 'last_message_id' => $message->id,
             ]);
 
-            $message->load(['attachments', 'user:id,name', 'chat' => ['participants']]);
+            $message->load(['attachments', 'user', 'chat' => ['participants']]);
 
             broadcast(new MessageCreated($message))->toOthers();
             DB::commit();
