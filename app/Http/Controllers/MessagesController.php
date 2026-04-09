@@ -19,44 +19,6 @@ use Throwable;
 class MessagesController extends Controller
 {
     /**
-     * Display a listing of the resource.
-     */
-    public function index($id)
-    {
-        $user = Auth::user();
-        $messages = [];
-
-        $chat = $user->chats()->find($id);
-
-        $messages = $chat->messages()
-            ->with(['user', 'attachments'])
-            ->where(function ($query) use ($user) {
-                $query->where('user_id', $user->id)
-                    ->orWhereRaw('id in (
-                    select message_id from recipients
-                    where messages.id = recipients.message_id and
-                    recipients.user_id = ? and
-                    recipients.deleted_at is null
-                )', [$user->id]);
-            })->get();
-
-        // $messages = DB::select('
-        //       SELECT * FROM messages
-        //       inner join recipients on recipients.message_id = messages.id
-        //       where messages.chat_id = ?
-
-        //  ', [$chat->id]);
-
-        // $chat->messages()->with('user:id,name')->get();
-        $participants = $chat->participants()->where('user_id', '<>', $user->id)->get();
-
-        return response()->json([
-            'messages' => $messages,
-            'participants' => $participants,
-        ]);
-    }
-
-    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
@@ -173,39 +135,5 @@ class MessagesController extends Controller
         } catch (Throwable $e) {
             return errorResponse($e->getMessage(), 500);
         }
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        $message = Message::findOrFail($id);
-        $message->update([
-            'body' => $request->post('message'),
-        ]);
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        Recipient::where([
-            'user_id' => Auth::id(),
-            'message_id' => $id,
-        ])->delete();
-
-        return [
-            'Message Deleted',
-        ];
     }
 }
