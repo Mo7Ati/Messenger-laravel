@@ -19,6 +19,32 @@ use Illuminate\Validation\ValidationException;
 class ContactController extends Controller
 {
     /**
+     * Search within the authenticated user's accepted contacts.
+     */
+    public function search(Request $request)
+    {
+        $request->validate([
+            'query' => 'required|string|min:1',
+        ]);
+
+        $query = $request->input('query');
+        $user = Auth::user();
+
+        $contacts = $user->contacts()
+            ->where(function ($q) use ($query) {
+                $q->where('name', 'like', "%{$query}%")
+                    ->orWhere('email', 'like', "%{$query}%")
+                    ->orWhere('phone', 'like', "%{$query}%");
+            })
+            ->get();
+
+        return successResponse(
+            UserResource::collection($contacts),
+            'Contacts search results',
+        );
+    }
+
+    /**
      * Get all accepted contacts of the authenticated user.
      */
     public function index(Request $request)

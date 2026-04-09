@@ -32,7 +32,7 @@ Route::middleware('auth:sanctum')->group(function () {
         ->name('messages.attachments.download');
 
     // Contacts routes
-    Route::get('/contacts/search', [UserController::class, 'search']);
+    Route::get('/contacts/search', [ContactController::class, 'search']);
     Route::get('/contacts', [ContactController::class, 'index']);
     Route::get('/contacts/requests', [ContactController::class, 'pendingRequests']);
     Route::get('/contacts/sent', [ContactController::class, 'sentRequests']);
@@ -46,4 +46,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/user/profile', [ProfileController::class, 'updateProfile']);
     Route::delete('/user/avatar', [ProfileController::class, 'deleteAvatar']);
     Route::put('/user/password', [ProfileController::class, 'updatePassword']);
+
+    // User routes
+    Route::get('/users/search', [UserController::class, 'search']);
 });

@@ -201,7 +201,7 @@ class ChatController extends Controller
 
         $chat->participants()->detach($user->id);
 
-        if ($chat->participants()->count() === 0) {
+        if ($chat->participants()->count() === 1) {
             $chat->delete();
         }
 
