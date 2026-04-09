@@ -181,6 +181,37 @@ class ChatController extends Controller
         );
     }
 
+    public function leaveGroup(Chat $chat)
+    {
+        $user = Auth::user();
+
+        if ($chat->type !== ChatTypeEnum::GROUP) {
+            return errorResponse('You can only leave group chats', 403);
+        }
+
+        if (!$chat->participants()->where('user_id', $user->id)->exists()) {
+            return errorResponse('You are not a participant of this chat', 403);
+        }
+
+        if ($user->isAdminOfChat($chat) && $chat->participants()->count() > 1) {
+            // Transfer admin role to the next participant
+            $nextParticipant = $chat->participants()->where('user_id', '!=', $user->id)->first();
+            $chat->participants()->updateExistingPivot($nextParticipant->id, ['role' => 'admin']);
+        }
+
+        $chat->participants()->detach($user->id);
+
+        if ($chat->participants()->count() === 0) {
+            $chat->delete();
+        }
+
+        return successResponse(
+            null,
+            'You have left the group successfully',
+            200
+        );
+    }
+
     public function markAsRead($id)
     {
         $user = Auth::user();
